@@ -4,7 +4,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="一鍵搭車"><meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#153b74"><meta name="description" content="長輩大字版：南港高鐵、雲林高鐵、虎尾、南公館雙向多組班次一鍵查，分享後可加到手機桌面。">
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAEcElEQVR42u3coW4UURSH8e3kpqKC4Jo0GJCYhqQK3deoIRUoFKKPUIFCIRqeBI0iITVIMKSaVFSgEE0ItNN2d3Zn5px7f5/cLumcM9/9n3tnu2ztHhwtgKF0WgACgUAgEAgEEAgEAoFAIIBAIBAIBAIBBAKBQCBUQ4l2QZf7e+7K/Tw6vyAQaTbTrtllKrypQ6a5TCrUqcmk6TUq1KFRDoGoU6VGHXta2GsnTiDq1B1FHXtEUVCB2NOCQx17OBROIPa041DHHg4FEog9rTnUsYdDIQRiT5sO+YMyBBBI/DQbQh17OGSEIe0IEz+Nh5AEwnwJJH6EkATCTAkkfoSQBMLcpzAQyPzC8HsqgWCEgUBoSCAbINugv5QstV2dnbZ2O3eOT+JfZOFN/Nojm1Sok8WkmBoV6tCoqlMYe3L1p2iNKKohgdiTtGOdXnCoqj0QctFZRkIosUDsyd5DIwxpBRI/FXSy5OrUs9cfp/lF3z+8ivbbY1KyLJrJbl6cdbKSRldnp7M8WuwSNbQ1UlTd6aPa8wm0/Pxq2Z5VOzDLVtoxHvUKJH7i90ECgUAgEAgEAgEEAoFAIBAIIBAIBAKBQACBQCAQCAQCCAQCgUAgEAgUkURfEW+2DxIIVQskhIJ3oNNBtdc/wtp0KEXVJVc3G/mys/9gqs7O2pA5hYFAIBAIBBAIBAKBQCAQCCAQpibNRxlP375v6sb8ePeGQNRZt+r4GhlhqFqgNuMnUfkSCAQCgUAgECgeWR6HNFu+BMJalCyr0JNoApll9kBABIF2jk+0vo6uSiAQCA0KZIrV0U8JhLQCCaEKOimBkFkgIZS9hyVC/Vdnp0u++fHzw9sv/vr2KbUB6xQ1+wosqbv8748yalRBUSH2QA8uo3savdJ7stiz5HsibAC2dg+OVv03l/t7Y1xK7yAboEX8VbuRokay59H5RdYRdt2R5fdDds1G2APdGTaVgs+yNYuKdm4NNMJusP35S+/rP7/+F+ZPXhwmGmR32bNkUb9fHox9hauOsGQPEm80uveVdKQuKqhAvfFzV1t7Xw84yHovaaWi7krlGSl5l+mNn96O/Wjbhe1NFCWBUBUEAoFAIBBoXO7fTsbfbNZaVFCBep+Y3dXQ3tcneOamqHwj7HZbk2ZPNUUN+ShjMfenGcPWehAiF7Xq5xjRE2hYyyLbU19RTmFYi+gfZVyvvCVjP3j2VFnUwAQaMCzHjv0s9oQtatg9Lbna3btq06lTU1GlvlWbVKOkDN9ETzzFEHB+OYVh1mO8EGo8fiQQZk0gIdR4/EggzJ1AQqjl+NlYAnGoTXuMMIQRSAg1GD8bTiAOtWbP5kcYh5qyZ5Q9EIfasWesTTSHGrFnxFMYh1qwZ9xjPIeqt2cx9nMgDtVtz2KCv0i8vvppvkeG6RdwV00lmKXnZeJ6RFFly7XMUhuNqkn6MmOdNKpgk1Ai1MykvJvLEq0LZMp1Iim6gwTHeBAIIBAIBAKBQACBQCAQCAQCgQACgUAgEAgELMcfIAerLN5Mj1cAAAAASUVORK5CYII=">
-<link rel="stylesheet" href="/elder.css?v=8">
+<link rel="stylesheet" href="/elder.css?v=9">
 <title>高鐵公車一鍵搭車｜長輩專用</title></head>
 <body><main class="app">
 <header><h1>🚄 高鐵公車搭車</h1><p id="clock">臺灣時間</p></header>
@@ -37,7 +37,7 @@
 <label for="date">出發日期</label><input id="date" type="date">
 <label for="time">預計出發時間</label><input id="time" type="time">
 <button class="more" id="reset" type="button">🔄 改回現在</button>
-<p>臺灣時間。高鐵為一般常態表、公車為業者公布班表；無法保證即時座位、準點與臨時停駛。南公館與虎尾途中站是推估，出門前務必再向客運確認。</p><p>🔊 台語語音提供者：意傳科技「媠聲」免費展示服務，需網路、可能限流；若播不了，請用「國語備用」。</p>
+<p>臺灣時間。高鐵為一般常態表、公車為業者公布班表；無法保證即時座位、準點與臨時停駛。南公館與虎尾途中站是推估，出門前務必再向客運確認。</p><p>🔊 台語改成三段慢慢唸：高鐵、第一班公車、虎尾轉車。聽無可按「重聽剛才這段」。採意傳科技「媠聲」免費展示服務，需網路且可能限流。</p>
 </details>
 <footer><a href="https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c" target="_blank" rel="noopener">查高鐵官方時刻</a> · <a href="https://www.taiwanbus.tw/eBUSPage/Default.aspx?lan=C" target="_blank" rel="noopener">查公車官方班表</a><br>免費個人使用 · 非高鐵或客運官方 App</footer>
 </main>
@@ -52,5 +52,5 @@
 <button class="copy" id="copyLink" type="button">🔗 複製 App 網址</button>
 <button class="done" id="done" type="button">好，我知道了</button>
 </dialog>
-<script src="/elder.js?v=8" defer></script>
+<script src="/elder.js?v=9" defer></script>
 </body></html>
