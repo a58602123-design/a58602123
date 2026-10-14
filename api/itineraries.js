@@ -21,8 +21,8 @@ function build(day,bus){
    if(wait<MIN_HSR_TO_BUS||wait>180)continue;
    for(const b of tigerNan){
     const transfer=gap(b.dep,a.arr);
-    if(transfer<MIN_BUS_TO_BUS||transfer>210)continue;
-    if(gap(b.arr,th.dep)>540)continue;
+    if(transfer<MIN_BUS_TO_BUS||transfer>100)continue;
+    if(gap(b.arr,th.dep)>330)continue;
     choices.push({date:day,dir:'home',start:th.dep,end:b.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:wait,wait2:transfer,estimated:true});
    }
   }
@@ -33,7 +33,7 @@ function build(day,bus){
   let choices=[];
   for(const b of tigerHsr){
    const transfer=gap(b.dep,a.arr);
-   if(transfer<MIN_BUS_TO_BUS||transfer>180)continue;
+   if(transfer<MIN_BUS_TO_BUS||transfer>120)continue;
    for(const th of north){
     const wait=gap(th.dep,b.arr);
     if(wait<MIN_BUS_TO_HSR||wait>210)continue;
