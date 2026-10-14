@@ -78,7 +78,8 @@ function getPlan(data,direction,start,huwei){const first=direction==='home'?(huw
    for(const b of bs){let gap=(asEpoch(day,b.dep)-asEpoch(day,a.arr))/60000;if(gap>=15&&gap<=240){options.push({date:day,a,b,arrival:asEpoch(day,b.arr),status:info.status,transfer:gap});}}
   }
  }
- options.sort((x,y)=>x.arrival-y.arrival||asEpoch(x.date,x.a.dep)-asEpoch(y.date,y.a.dep));
+ // 同一抵達時間優先轉車等候最短的班次，避免讓長輩在虎尾多等幾小時。
+ options.sort((x,y)=>x.arrival-y.arrival||(x.transfer??0)-(y.transfer??0)||asEpoch(y.date,y.a.dep)-asEpoch(x.date,x.a.dep));
  return options[0]||null;
 }
 function showLoading(direction){$('output').hidden=false;$('tripHeading').textContent=direction==='home'?'🚄 高鐵回家':'🏠 出門搭高鐵';$('content').innerHTML='<div class="noData" role="status"><h2>🚌 正在查車…</h2><p>請等一下</p></div>';$('repeat').disabled=true;$('again').disabled=true;$('output').scrollIntoView({behavior:'smooth',block:'start'});}
