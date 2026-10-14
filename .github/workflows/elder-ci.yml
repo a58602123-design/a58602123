@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,5 +17,23 @@ jobs:
           node --check elder.js
           node --check api/schedule.js
           node --check api/itineraries.js
+          node --check api/taigi.js
       - name: 執行固定班次與轉乘測試
         run: node --test tests/*.test.js
+
+      - name: 驗證已上線的台語音訊（僅指定檢查）
+        if: contains(github.event.head_commit.message, '[verify-voice]')
+        run: |
+          sleep 30
+          echo "=== 台語伺服器健康測試 ==="
+          curl -sSL --max-time 45 -o /tmp/voice-health -w 'HTTP %{http_code} TYPE %{content_type}\n' "https://a58602123.vercel.app/api/taigi?check=health" || true
+          head -c 700 /tmp/voice-health || true
+          echo
+          echo "=== 漢字轉台羅服務 ==="
+          curl -sSL --max-time 45 -o /tmp/voice-phonetic -w 'HTTP %{http_code} TYPE %{content_type}\n' "https://a58602123.vercel.app/api/taigi?check=phonetic" || true
+          head -c 700 /tmp/voice-phonetic || true
+          echo
+          echo "=== 免費台語MP3合成測試（一次） ==="
+          curl -sSL --max-time 55 -o /tmp/voice-demo -w 'HTTP %{http_code} TYPE %{content_type}\n' "https://a58602123.vercel.app/api/taigi?check=1" || true
+          head -c 700 /tmp/voice-demo || true
+          echo
