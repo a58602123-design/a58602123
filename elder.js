@@ -26,7 +26,7 @@ function renderCard(t,n,base,best){const home=t.dir==='home',date=dayTitle(t.dat
  if(t.wait1>90)longParts.push((home?'雲林高鐵站':'虎尾站')+'要等'+readableWait(t.wait1));
  if(t.wait2>90)longParts.push((home?'虎尾站':'雲林高鐵站')+'要等'+readableWait(t.wait2));
  const caution=longParts.length?'<div class="longWait">⏳ 等車很久！<br>'+longParts.map(esc).join('、')+'。<br>請家人確認是否要改搭其他交通工具。</div>':'';
- return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div>'+caution+'<div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div></article>';
+ return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div>'+caution+'<div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語慢慢聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div><div class="voiceStatus" data-voice-status="'+n+'" role="status" aria-live="polite"></div><button class="repeatTai" type="button" data-speak="'+n+'" data-lang="repeat">🔁 重聽剛才這段</button></article>';
 }
 function collect(){if(!data||!direction)return {items:[],date:getStart().date,actual:null};const start=getStart(),day=offset?addDay(start.date):start.date,record=(data.days||[]).find(x=>x.date===day);if(!record)return {items:[],date:day,actual:record};let items=(record[direction]||[]).slice();
  if(slot==='upcoming'){const min=day===twNow().date?timeInt(getStart().time)+15:0;items=items.filter(t=>timeInt(t.start)>=min);}
@@ -70,33 +70,81 @@ function voiceWords(t,tai){const d=t.dir==='home';let s=d?'欲對南港去南公
  else{s+=step('南公館',t.bus1.route,t.bus1.dep,t.bus1.arr,false)+step('虎尾公車站',t.bus2.route,t.bus2.dep,t.bus2.arr,false)+step('雲林高鐵站',t.hsr.no,t.hsr.dep,t.hsr.arr,true)+('到南港高鐵站，'+timeTai(t.end)+'。');}
  return s+(tai?'時間若有變動，愛記得先確認。':'途中站是估計時間，務必提前候車。');}
 function taiVoice(){if(!('speechSynthesis' in window))return null;return speechSynthesis.getVoices().find(v=>/^(nan|nan-TW)(-|$)/i.test(v.lang)||/\b(Taiwanese Hokkien|Tai-gi|Taigi|Min Nan)\b/i.test(v.name));}
-let activeAudio=null;
-function playTai(t){
- if(activeAudio){activeAudio.pause();activeAudio=null;}
+// Keep each Taiwanese recording short. This avoids the late-phrase gibberish of long syntheses.
+let activeAudio=null,audioSession=0,lastTaiPart=null;
+function stopTai(){
+ audioSession++;
+ if(activeAudio){try{activeAudio.pause();activeAudio.removeAttribute('src');activeAudio.load();}catch(e){}activeAudio=null;}
+}
+function voiceStatus(i,message){
+ displayNotice(message);
+ const el=document.querySelector('[data-voice-status="'+i+'"]');
+ if(el)el.textContent=message;
+}
+function playTai(t,i,onlyPart=null){
+ stopTai();
  if('speechSynthesis' in window)speechSynthesis.cancel();
+ const session=audioSession;
  const qs=new URLSearchParams({
   dir:t.dir,hsr:String(t.hsr.no),hsrDep:t.hsr.dep,hsrArr:t.hsr.arr,
   bus1:t.bus1.route,bus1Dep:t.bus1.dep,bus2:t.bus2.route,bus2Dep:t.bus2.dep,end:t.end
  });
- const sound=new Audio('/api/taigi?'+qs.toString());
- activeAudio=sound;
+ let part=onlyPart===null?0:onlyPart;
+ const labels=t.dir==='home'?['南港搭高鐵','雲林換公車','虎尾轉車到南公館']:['南公館搭公車','虎尾換公車','雲林搭高鐵'];
+ const sound=new Audio();
  sound.preload='auto';
- sound.addEventListener('waiting',()=>{if(activeAudio===sound)displayNotice('⏳ 免費台語語音合成中，請等一下…');});
- sound.addEventListener('playing',()=>{if(activeAudio===sound)displayNotice('🔊 真正台語語音播放中（意傳媠聲）');});
- sound.addEventListener('error',()=>{if(activeAudio===sound){activeAudio=null;displayNotice('台語展示服務目前忙碌或無法播放。請按「國語備用」；不會假裝國語是台語。');}});
- sound.addEventListener('ended',()=>{if(activeAudio===sound){activeAudio=null;displayNotice('台語播報結束');}});
- displayNotice('⏳ 正在準備真正的台語音檔，約需數秒至半分鐘…');
- try{const p=sound.play();if(p&&p.catch)p.catch(()=>{if(activeAudio===sound){activeAudio=null;displayNotice('手機擋住播放，請再按「聽台語」，或先選國語備用。');}});}catch(e){activeAudio=null;displayNotice('台語播報暫時無法播放，請按國語備用。');}
+ sound.preservesPitch=true;
+ if('webkitPreservesPitch' in sound)sound.webkitPreservesPitch=true;
+ activeAudio=sound;
+ let failed=false;
+ function alive(){return audioSession===session&&activeAudio===sound;}
+ function fail(message){if(!alive()||failed)return;failed=true;voiceStatus(i,message);activeAudio=null;}
+ function step(){
+  if(!alive())return;
+  failed=false;
+  lastTaiPart={i,part,t};
+  sound.src='/api/taigi?part='+part+'&'+qs.toString();
+  sound.playbackRate=.85;
+  voiceStatus(i,'🔊 第 '+(part+1)+' 段：'+labels[part]+'，正在準備台語…');
+  try{
+   const started=sound.play();
+   if(started&&started.catch)started.catch(()=>fail('⚠️ 第 '+(part+1)+' 段不能播放。可按「重聽這段」或用國語備用。'));
+  }catch(e){fail('⚠️ 手機暫時無法播放，請再按一次或用國語備用。');}
+ }
+ sound.addEventListener('playing',()=>{if(alive())voiceStatus(i,'🐢 台語慢速 · 第 '+(part+1)+' 段：'+labels[part]);});
+ sound.addEventListener('waiting',()=>{if(alive())voiceStatus(i,'⏳ 第 '+(part+1)+' 段台語音檔準備中，請稍等…');});
+ sound.addEventListener('error',()=>fail('⚠️ 第 '+(part+1)+' 段台語暫時無法播放。免費服務可能忙碌，可重聽或使用國語備用。'));
+ sound.addEventListener('ended',()=>{
+  if(!alive()||failed)return;
+  lastTaiPart={i,part,t};
+  if(part<2&&onlyPart===null){
+   part++;
+   step(); // reuse the same audio element for iPhone playlist playback
+  }else{
+   activeAudio=null;
+   voiceStatus(i,onlyPart===null?'✅ 三段播完。若有聽無，按「重聽剛才這段」。':'✅ 這段已重聽完成。');
+  }
+ });
+ step();
 }
 function play(i,lang){
  const t=visibleOptions[i];if(!t)return;
- if(lang==='tai'){playTai(t);return;}
- if(activeAudio){activeAudio.pause();activeAudio=null;}
- if(!('speechSynthesis' in window)){displayNotice('這台手機沒有國語語音功能。');return;}
- try{speechSynthesis.cancel();const voice=speechSynthesis.getVoices().find(v=>/^zh-TW/i.test(v.lang))||null;
-   const msg=new SpeechSynthesisUtterance(voiceWords(t,false));if(voice)msg.voice=voice;msg.lang='zh-TW';msg.rate=.82;msg.pitch=1;msg.volume=1;
-   speechSynthesis.speak(msg);displayNotice('正在播放國語備用語音');
- }catch(e){displayNotice('這台手機暫時無法播放國語。');}
+ if(lang==='tai'){playTai(t,i);return;}
+ if(lang==='repeat'){
+  if(!lastTaiPart||lastTaiPart.i!==i||lastTaiPart.t!==t){voiceStatus(i,'請先按「台語慢慢聽」，再重聽不清楚的段落。');return;}
+  playTai(t,i,lastTaiPart.part);return;
+ }
+ stopTai();
+ if(!('speechSynthesis' in window)){voiceStatus(i,'這台手機沒有國語語音功能。');return;}
+ try{
+  speechSynthesis.cancel();
+  const voice=speechSynthesis.getVoices().find(v=>/^zh-TW/i.test(v.lang))||null;
+  const msg=new SpeechSynthesisUtterance(voiceWords(t,false));
+  if(voice)msg.voice=voice;
+  msg.lang='zh-TW';msg.rate=.8;msg.pitch=1;msg.volume=1;
+  speechSynthesis.speak(msg);
+  voiceStatus(i,'正在播放國語備用語音');
+ }catch(e){voiceStatus(i,'這台手機暫時無法播放國語。');}
 }
 function installDialog(){if(!('showModal' in $('installDialog'))){alert('請在手機瀏覽器選「加入主畫面」');return;}$('installDialog').showModal();}
 async function install(){if(deferredInstall){const e=deferredInstall;deferredInstall=null;e.prompt();try{await e.userChoice;}catch(err){}return;}installDialog();}
