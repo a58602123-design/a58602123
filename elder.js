@@ -54,7 +54,7 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  $('outputNotice').textContent='⚠️ 高鐵是常態表，公車途中站是估計。非即時到站，可能臨時調整。高鐵轉公車至少25分鐘，公車轉高鐵至少30分鐘；請務必先向業者確認。';
  if(pack.actual&&pack.actual.status!=='derived')$('outputNotice').textContent='⚠️ 公車資料只有部分可用／無法完整確認。請勿只靠此表趕車！';
 }
-async function query(dir){direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
+async function query(dir){stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
  try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),17000);let response;
   try{response=await fetch('/api/itineraries?date='+encodeURIComponent(start.date),{signal:controller.signal,cache:'no-store'});}finally{clearTimeout(timer);}
   if(!response.ok)throw Error('連線失敗');const incoming=await response.json();if(ticket!==requestId)return;data=incoming;paint();
@@ -153,8 +153,8 @@ async function share(){const u=location.origin+'/';if(navigator.share){try{await
 function clock(){$('clock').textContent=twfmt.format(new Date()).replace('24:','00:');}
 $('home').addEventListener('click',()=>query('home'));
 $('train').addEventListener('click',()=>query('train'));
-$('slots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;slot=b.dataset.slot;showAll=false;paint();});
-$('dayToggle').addEventListener('click',()=>{offset=offset?0:1;showAll=false;paint();});
+$('slots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;slot=b.dataset.slot;showAll=false;paint();});
+$('dayToggle').addEventListener('click',()=>{stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;offset=offset?0:1;showAll=false;paint();});
 $('more').addEventListener('click',()=>{showAll=true;paint();});
 $('cards').addEventListener('click',e=>{const b=e.target.closest('[data-speak]');if(b)play(Number(b.dataset.speak),b.dataset.lang);});
 $('share').addEventListener('click',share);$('install').addEventListener('click',install);$('done').addEventListener('click',()=>$('installDialog').close());
