@@ -65,10 +65,33 @@ function voiceWords(t,tai){const d=t.dir==='home';let s=d?'欲對南港去南公
  else{s+=step('南公館',t.bus1.route,t.bus1.dep,t.bus1.arr,false)+step('虎尾公車站',t.bus2.route,t.bus2.dep,t.bus2.arr,false)+step('雲林高鐵站',t.hsr.no,t.hsr.dep,t.hsr.arr,true)+('到南港高鐵站，'+timeTai(t.end)+'。');}
  return s+(tai?'時間若有變動，愛記得先確認。':'途中站是估計時間，務必提前候車。');}
 function taiVoice(){if(!('speechSynthesis' in window))return null;return speechSynthesis.getVoices().find(v=>/^(nan|nan-TW)(-|$)/i.test(v.lang)||/\b(Taiwanese Hokkien|Tai-gi|Taigi|Min Nan)\b/i.test(v.name));}
-function play(i,lang){const t=visibleOptions[i];if(!t)return;if(!('speechSynthesis' in window)){displayNotice('這台手機無法語音播放。');return;}
- const tai=lang==='tai',voice=tai?taiVoice():(speechSynthesis.getVoices().find(v=>/^zh-TW/i.test(v.lang))||null);
- if(tai&&!voice){displayNotice('此手機沒有台語語音。請按「國語備用」；台語沒有假裝用國語唸。');return;}
- try{speechSynthesis.cancel();const msg=new SpeechSynthesisUtterance(voiceWords(t,tai));if(voice)msg.voice=voice;msg.lang=tai?'nan-TW':'zh-TW';msg.rate=.82;msg.pitch=1;msg.volume=1;speechSynthesis.speak(msg);displayNotice(tai?'正在用台語播報':'正在用國語備用播報');}catch(e){displayNotice('這台手機目前無法語音播放。');}
+let activeAudio=null;
+function playTai(t){
+ if(activeAudio){activeAudio.pause();activeAudio=null;}
+ if('speechSynthesis' in window)speechSynthesis.cancel();
+ const qs=new URLSearchParams({
+  dir:t.dir,hsr:String(t.hsr.no),hsrDep:t.hsr.dep,hsrArr:t.hsr.arr,
+  bus1:t.bus1.route,bus1Dep:t.bus1.dep,bus2:t.bus2.route,bus2Dep:t.bus2.dep,end:t.end
+ });
+ const sound=new Audio('/api/taigi?'+qs.toString());
+ activeAudio=sound;
+ sound.preload='auto';
+ sound.addEventListener('waiting',()=>{if(activeAudio===sound)displayNotice('⏳ 免費台語語音合成中，請等一下…');});
+ sound.addEventListener('playing',()=>{if(activeAudio===sound)displayNotice('🔊 真正台語語音播放中（意傳媠聲）');});
+ sound.addEventListener('error',()=>{if(activeAudio===sound){activeAudio=null;displayNotice('台語展示服務目前忙碌或無法播放。請按「國語備用」；不會假裝國語是台語。');}});
+ sound.addEventListener('ended',()=>{if(activeAudio===sound){activeAudio=null;displayNotice('台語播報結束');}});
+ displayNotice('⏳ 正在準備真正的台語音檔，約需數秒至半分鐘…');
+ try{const p=sound.play();if(p&&p.catch)p.catch(()=>{if(activeAudio===sound){activeAudio=null;displayNotice('手機擋住播放，請再按「聽台語」，或先選國語備用。');}});}catch(e){activeAudio=null;displayNotice('台語播報暫時無法播放，請按國語備用。');}
+}
+function play(i,lang){
+ const t=visibleOptions[i];if(!t)return;
+ if(lang==='tai'){playTai(t);return;}
+ if(activeAudio){activeAudio.pause();activeAudio=null;}
+ if(!('speechSynthesis' in window)){displayNotice('這台手機沒有國語語音功能。');return;}
+ try{speechSynthesis.cancel();const voice=speechSynthesis.getVoices().find(v=>/^zh-TW/i.test(v.lang))||null;
+   const msg=new SpeechSynthesisUtterance(voiceWords(t,false));if(voice)msg.voice=voice;msg.lang='zh-TW';msg.rate=.82;msg.pitch=1;msg.volume=1;
+   speechSynthesis.speak(msg);displayNotice('正在播放國語備用語音');
+ }catch(e){displayNotice('這台手機暫時無法播放國語。');}
 }
 function installDialog(){if(!('showModal' in $('installDialog'))){alert('請在手機瀏覽器選「加入主畫面」');return;}$('installDialog').showModal();}
 async function install(){if(deferredInstall){const e=deferredInstall;deferredInstall=null;e.prompt();try{await e.userChoice;}catch(err){}return;}installDialog();}
