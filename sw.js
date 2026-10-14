@@ -1,5 +1,5 @@
-const CACHE='yunlin-elder-v7';
-const ASSETS=['/','/index.html','/manifest.webmanifest','/icon.svg','/elder.css?v=7','/elder.js?v=7'];
+const CACHE='yunlin-elder-v8';
+const ASSETS=['/','/index.html','/manifest.webmanifest','/icon.svg','/elder.css?v=8','/elder.js?v=8'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
