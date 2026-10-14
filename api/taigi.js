@@ -57,11 +57,12 @@ async function handler(req,res){
  const q=req.query||{},check=String(q.check||'');
  const segments=voiceSegments(q);
  if(check==='segments')return segments?json(res,200,'分段台語播報文字',{segments}):json(res,400,'車次資料格式不正確');
- const probe=check==='phonetic';
+ const elevenCheck=check==='eleven';
+ const probe=check==='phonetic'||elevenCheck;
  const testing=check==='1'||probe;
  const partText=q.part===undefined?'':String(q.part);
  if(!testing&&partText&&!/^[012]$/.test(partText))return json(res,400,'語音段落只能是0、1或2');
- const text=testing?'逐家好，請坐車。':partText?segments?.[Number(partText)]:voiceText(q);
+ const text=elevenCheck?'十一點。':testing?'逐家好，請坐車。':partText?segments?.[Number(partText)]:voiceText(q);
  if(!text)return json(res,400,'車次資料格式不正確');
  const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText]);
  const hit=cache.get(key);
