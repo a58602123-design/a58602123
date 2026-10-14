@@ -20,7 +20,7 @@ function canRun(rule,date,overrideDow){const a=String(rule||'').replace(/\s/g,''
 }
 function projected(date,route,dir,departure){
  const id=route.replace(/[AB]$/,''),out=[];
- function add(leg,from,to){out.push({date,route,leg,dep:addMins(departure,from),arr:addMins(departure,to),estimated:true});}
+ function add(leg,from,to){out.push({date,route,leg,dep:addMins(departure,from),arr:addMins(departure,to),estimated:true,depEstimated:from!==0,arrEstimated:true});}
  if(id==='7102'){
   if(dir==='往程')add('hsr_huwei',0,22);
   else if(route==='7102A')add('huwei_hsr',16,38);
@@ -30,7 +30,7 @@ function projected(date,route,dir,departure){
   if(dir==='往程'&&route==='7104')add('huwei_hsr',0,16);
  }else if(id==='7111'){
   if(dir==='往程')add('huwei_nan',0,45);
-  else add('nan_huwei',12,53);
+  else add('nan_huwei',7,60); // 保守估算：南公館提前約7分、最久到虎尾約60分；車況須再確認
  }else if(id==='7120'){
   // 7120 斗六→高鐵雲林站方向，途經虎尾，非反方向班次。
   if(dir==='往程')add('huwei_hsr',34,54);
