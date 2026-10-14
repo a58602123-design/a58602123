@@ -34,7 +34,7 @@ test('高鐵→公車至少25分鐘、公車→公車至少15分鐘且班次不�
  for(const r of data.home){
   assert.ok(gap(r.bus1.dep,r.hsr.arr)>=MIN_HSR_TO_BUS);
   assert.ok(gap(r.bus2.dep,r.bus1.arr)>=MIN_BUS_TO_BUS);
-  assert.ok(gap(r.bus2.dep,r.bus1.arr)<=100);
+  assert.equal(r.longWait,r.wait1>90||r.wait2>90);
  }
 });
 test('過短公車轉乘不得排進推薦清單',()=>{
@@ -48,4 +48,21 @@ test('依日期不同，高鐵常態週班表服務內容須有分別',()=>{
  const b=build('2026-10-18',fixture('2026-10-18'));
  assert.equal(dow('2026-10-14'),3);assert.equal(dow('2026-10-18'),0);
  assert.ok(a.train.length>=0&&b.home.length>=0);
+});
+
+test('虎尾7111完整班表有5個時段，不能被高鐵配對濾掉',()=>{
+ const f=fixture('2026-10-14');const trip=(dep,arr)=>({date:f.date,leg:'huwei_nan',route:'7111',dep,arr,estimated:true});
+ f.trips.push(trip('06:30','07:15'),trip('07:40','08:25'),trip('08:30','09:15'),trip('18:20','19:05'));
+ const r=build(f.date,f);assert.deepEqual(r.bus7111.home.map(x=>x.dep),['06:30','07:40','08:30','11:35','18:20']);
+ assert.ok(r.home.every(x=>x.bus2.dep==='11:35'),'清晨高鐵接不上7111前幾班，不代表班次不存在');
+});
+test('下午高鐵仍可轉18:20的7111，即使虎尾要等很久也應標示',()=>{
+ const f=fixture('2026-10-14');
+ f.trips.push({date:f.date,leg:'hsr_huwei',route:'7102B',dep:'15:15',arr:'15:37',estimated:true});
+ f.trips.push({date:f.date,leg:'huwei_nan',route:'7111',dep:'18:20',arr:'19:05',estimated:true});
+ const r=build(f.date,f);const afternoon=r.home.find(x=>x.hsr.no==='825');
+ assert.ok(afternoon,'12:00 於南港搭825不應被刪除');
+ assert.equal(afternoon.bus2.dep,'18:20');
+ assert.equal(afternoon.wait2,163);
+ assert.equal(afternoon.longWait,true);
 });
