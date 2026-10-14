@@ -59,3 +59,26 @@ jobs:
           curl -sSL --max-time 110 -o /tmp/real-trip.mp3 -w 'HTTP %{http_code} TYPE %{content_type} BYTES %{size_download}\n'             'https://a58602123.vercel.app/api/taigi?dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20'
           file /tmp/real-trip.mp3
           test "$(head -c3 /tmp/real-trip.mp3)" = 'ID3' || { head -c400 /tmp/real-trip.mp3; exit 1; }
+
+      - name: 驗證台語三段短句全部是可播放 MP3
+        if: contains(github.event.head_commit.message, '[verify-taigi-parts]')
+        run: |
+          sleep 35
+          echo '=== 台語三段短句及車次 ==='
+          curl -fsSL --max-time 25 'https://a58602123.vercel.app/api/taigi?check=segments&dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20' -o /tmp/segments.json
+          node - <<'NODE'
+          const data=require('/tmp/segments.json');
+          if(!data.ok||data.segments?.length!==3)process.exit(1);
+          for(let i=0;i<3;i++){
+            console.log('第'+(i+1)+'段: '+data.segments[i]);
+            if(data.segments[i].length>36)process.exit(1);
+          }
+          NODE
+          for part in 0 1 2; do
+            echo "=== 音檔第 ${part} 段 ==="
+            curl -sSL --max-time 70 -o "/tmp/taigi-${part}.mp3" -w 'HTTP %{http_code} TYPE %{content_type} BYTES %{size_download}\\n' \
+              "https://a58602123.vercel.app/api/taigi?part=${part}&dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20"
+            file "/tmp/taigi-${part}.mp3"
+            node -e "const fs=require('fs');const f=fs.readFileSync('/tmp/taigi-${part}.mp3');if(f.length<2500||f.subarray(0,3).toString()!=='ID3')throw Error('Not valid MP3');console.log('MP3 bytes',f.length)"
+            if [ "$part" != '2' ]; then sleep 23; fi
+          done
