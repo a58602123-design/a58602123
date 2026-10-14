@@ -90,3 +90,32 @@ jobs:
           curl -fsSL --max-time 40 'https://a58602123.vercel.app/api/taigi?check=eleven' -o /tmp/eleven.json
           cat /tmp/eleven.json
           echo
+
+
+      - name: 驗證「十一點」台羅與新版真實 MP3
+        if: contains(github.event.head_commit.message, '[test-time-v10]')
+        run: |
+          sleep 20
+          echo '=== 十一點固定台羅 ==='
+          curl -fsSL --max-time 25 'https://a58602123.vercel.app/api/taigi?check=eleven' -o /tmp/time11.json
+          node - <<'NODE'
+          const a=require('/tmp/time11.json');
+          console.log(a);
+          if(a.kip!=='tsa̍p-it tiám')process.exit(1);
+          NODE
+          echo '=== 真實轉乘音檔固定台羅 ==='
+          curl -fsSL --max-time 25 'https://a58602123.vercel.app/api/taigi?check=romanization&dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20' -o /tmp/romanization.json
+          node - <<'NODE'
+          const a=require('/tmp/romanization.json');
+          console.log(a);
+          if(!a.segments || a.segments.length!==3 || !a.segments[2].includes('tsa̍p-it tiám'))process.exit(1);
+          NODE
+          echo '=== 十一點 MP3 合成 ==='
+          curl -sSL --max-time 55 -w 'HTTP %{http_code} TYPE %{content_type} SIZE %{size_download}\n' -o /tmp/time11.mp3 'https://a58602123.vercel.app/api/taigi?check=elevenAudio'
+          file /tmp/time11.mp3
+          node -e "const f=require('fs').readFileSync('/tmp/time11.mp3');if(f.subarray(0,3).toString()!=='ID3')throw new Error('Eleven MP3 failed: '+f.toString().slice(0,300));console.log('eleven MP3 bytes',f.length)"
+          sleep 25
+          echo '=== 完整轉乘中的十一點三十五分 MP3 ==='
+          curl -sSL --max-time 55 -w 'HTTP %{http_code} TYPE %{content_type} SIZE %{size_download}\n' -o /tmp/bus11.mp3 'https://a58602123.vercel.app/api/taigi?v=10&part=2&dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20'
+          file /tmp/bus11.mp3
+          node -e "const f=require('fs').readFileSync('/tmp/bus11.mp3');if(f.subarray(0,3).toString()!=='ID3')throw new Error('Trip MP3 failed: '+f.toString().slice(0,300));console.log('trip MP3 bytes',f.length)"
