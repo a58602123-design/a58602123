@@ -46,6 +46,47 @@ function voiceSegments(q){
    '雲林高鐵站，'+sayTime(q.hsrDep)+'，坐'+hsr+'號高鐵。'+sayTime(q.end)+'到南港。'
  ];
 }
+// Fixed education-standard Tai-lo: 11 o'clock = tsa̍p-it tiám.
+// No flaky Hanzi-to-Tai-lo translation service required.
+const TAI_DIGITS=['khòng','it','jī','sann','sì','gōo','la̍k','tshit','peh','káu'];
+function tailoNumber(x){
+ const n=Number(x);
+ if(!Number.isInteger(n)||n<0||n>99)throw new RangeError('number unsupported');
+ if(n<10)return TAI_DIGITS[n];
+ if(n===10)return 'tsa̍p';
+ if(n<20)return 'tsa̍p-'+TAI_DIGITS[n-10];
+ const tens=TAI_DIGITS[Math.floor(n/10)]+'-tsa̍p';
+ return n%10?tens+'-'+TAI_DIGITS[n%10]:tens;
+}
+function tailoTime(value){
+ if(!validTime(value))throw new TypeError('invalid time');
+ const [hour,minute]=value.split(':').map(Number);
+ let period='',h=hour;
+ if(hour>=18){period='àm-sî ';h-=12;}
+ else if(hour>=13){period='ē-poo ';h-=12;}
+ else if(hour===0){period='pànn-mê ';h=12;}
+ return period+tailoNumber(h)+' tiám'+(minute?' '+tailoNumber(minute)+' hun':'');
+}
+function tailoTrainNo(code){return [...code].map(c=>TAI_DIGITS[Number(c)]).join(' ');}
+function tailoBusNo(code){
+ const base=code.replace(/[AB]$/,'');
+ return tailoTrainNo(base)+(code.endsWith('A')?' ê':code.endsWith('B')?' pi':'');
+}
+function tailoSegments(q){
+ if(!voiceText(q))return null;
+ const hsr=tailoTrainNo(String(q.hsr)),a=tailoBusNo(String(q.bus1)),b=tailoBusNo(String(q.bus2));
+ const station='ko-thih tsām',rail='hō ko-thih',bus='hō kong-tshia';
+ if(q.dir==='home')return [
+   'Lâm-káng '+station+', '+tailoTime(q.hsrDep)+', '+hsr+' '+rail+'.',
+   'Hûn-lîm '+station+', '+tailoTime(q.bus1Dep)+', '+a+' '+bus+'.',
+   'Hóo-bué tshia-tsām, '+tailoTime(q.bus2Dep)+', '+b+' '+bus+'. Lâm kong-kuán, '+tailoTime(q.end)+'.'
+ ];
+ return [
+   'Lâm kong-kuán, '+tailoTime(q.bus1Dep)+', '+a+' '+bus+'.',
+   'Hóo-bué tshia-tsām, '+tailoTime(q.bus2Dep)+', '+b+' '+bus+'.',
+   'Hûn-lîm '+station+', '+tailoTime(q.hsrDep)+', '+hsr+' '+rail+'. Lâm-káng '+station+', '+tailoTime(q.end)+'.'
+ ];
+}
 function json(res,status,message,extra={}){
  res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');
  res.setHeader('Cache-Control','no-store');return res.end(JSON.stringify({ok:status===200,message,...extra}));
@@ -57,26 +98,18 @@ async function handler(req,res){
  const q=req.query||{},check=String(q.check||'');
  const segments=voiceSegments(q);
  if(check==='segments')return segments?json(res,200,'分段台語播報文字',{segments}):json(res,400,'車次資料格式不正確');
- const elevenCheck=check==='eleven';
- const probe=check==='phonetic'||elevenCheck;
- const testing=check==='1'||probe;
+ const elevenCheck=check==='eleven',testing=check==='1'||elevenCheck;
  const partText=q.part===undefined?'':String(q.part);
- if(!testing&&partText&&!/^[012]$/.test(partText))return json(res,400,'語音段落只能是0、1或2');
- const text=elevenCheck?'十一點。':testing?'逐家好，請坐車。':partText?segments?.[Number(partText)]:voiceText(q);
- if(!text)return json(res,400,'車次資料格式不正確');
- const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText]);
+ if(partText&&!/^[012]$/.test(partText))return json(res,400,'語音段落只能是0、1或2');
+ const romanSegments=tailoSegments(q);
+ if(check==='romanization')return romanSegments?json(res,200,'固定台羅拼音',{segments:romanSegments}):json(res,400,'車次資料格式不正確');
+ const kip=elevenCheck?'tsa̍p-it tiám':testing?'ta̍k-ke hó':partText?romanSegments?.[Number(partText)]:romanSegments?.join(' ');
+ if(!kip)return json(res,400,'車次資料格式不正確');
+ if(elevenCheck)return json(res,200,'十一點的教育部台羅標準讀音',{kip});
+ const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText,'tailo-v2']);
  const hit=cache.get(key);
  if(hit&&!testing){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(hit);}
  try{
-   const transliterated=await fetch('https://hokbu.ithuan.tw/tau',{
-     method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json','User-Agent':'Yunlin-family-pwa/1.0'},
-     body:new URLSearchParams({taibun:text}),signal:AbortSignal.timeout(12000)
-   });
-   if(!transliterated.ok)return json(res,503,'台語標音服務暫時無法使用');
-   const data=await transliterated.json();
-   const kip=String(data.KIP||'').trim();
-   if(!kip||kip.length>450)return json(res,503,'台語標音失敗，請改用國語備用');
-   if(probe)return json(res,200,'台語標音服務可用',{kip});
    const audio=await fetch('https://hapsing.ithuan.tw/bangtsam?taibun='+encodeURIComponent(kip),{
      headers:{'User-Agent':'Yunlin-family-pwa/1.0','Accept':'audio/mpeg'},signal:AbortSignal.timeout(25000)
    });
@@ -91,4 +124,4 @@ async function handler(req,res){
    res.statusCode=200;res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(buffer);
  }catch(err){return json(res,503,'台語語音連線逾時，請稍後再試或使用國語備用');}
 }
-module.exports=handler;module.exports._test={voiceText,voiceSegments,sayTime,number};
+module.exports=handler;module.exports._test={voiceText,voiceSegments,sayTime,number,tailoNumber,tailoTime,tailoSegments};
