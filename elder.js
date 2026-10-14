@@ -11,7 +11,7 @@ function dayTitle(d,base){if(d===base)return '今天';if(d===addDay(base))return
 function displayNotice(msg){$('message').textContent=msg;}
 function heading(){return direction==='home'?'🚄 南港 → 南公館':'🏠 南公館 → 南港';}
 function renderStep(emoji,name,route,from,to,approx){return '<div class="stage"><div class="mode">'+emoji+' '+esc(route)+'</div><div class="detail">'+(approx?'約 ':'')+esc(from)+' → '+(approx?'約 ':'')+esc(to)+'</div><div class="dest">'+esc(name)+'</div></div>';}
-function renderCard(t,n,base){const home=t.dir==='home',date=dayTitle(t.date,base);let steps='';
+function renderCard(t,n,base,best){const home=t.dir==='home',date=dayTitle(t.date,base);let steps='';
  if(home){
   steps+=renderStep('🚄','南港高鐵 → 雲林高鐵','高鐵 '+t.hsr.no,t.hsr.dep,t.hsr.arr,false);
   steps+=renderStep('🚌','雲林高鐵 → 虎尾公車站',t.bus1.route,t.bus1.dep,t.bus1.arr,true);
@@ -21,7 +21,7 @@ function renderCard(t,n,base){const home=t.dir==='home',date=dayTitle(t.date,bas
   steps+=renderStep('🚌','虎尾公車站 → 雲林高鐵',t.bus2.route,t.bus2.dep,t.bus2.arr,true);
   steps+=renderStep('🚄','雲林高鐵 → 南港高鐵','高鐵 '+t.hsr.no,t.hsr.dep,t.hsr.arr,false);
  }
- return '<article class="journey"><div class="cardhead"><div class="lead">第 '+(n+1)+' 組 · '+date+' · 全程時刻</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div><div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div></article>';
+ return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div><div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div></article>';
 }
 function collect(){if(!data||!direction)return {items:[],date:getStart().date,actual:null};const start=getStart(),day=offset?addDay(start.date):start.date,record=(data.days||[]).find(x=>x.date===day);if(!record)return {items:[],date:day,actual:record};let items=(record[direction]||[]).slice();
  if(slot==='upcoming'){const min=day===twNow().date?timeInt(getStart().time)+15:0;items=items.filter(t=>timeInt(t.start)>=min);}
@@ -31,12 +31,12 @@ function collect(){if(!data||!direction)return {items:[],date:getStart().date,ac
  return {items,date:day,actual:record};}
 function paint(){if(!direction||!data)return;const base=getStart().date;
  let pack=collect();if(slot==='upcoming'&&offset===0&&!pack.items.length&&data.days.some(d=>d.date===addDay(base))){offset=1;pack=collect();}
- const date=dayTitle(pack.date,twNow().date),more=showAll?pack.items:pack.items.slice(0,8);visibleOptions=more;
+ const date=dayTitle(pack.date,twNow().date),ranked=pack.items.slice().sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:[],more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
  $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':slot==='afternoon'?'下午':'晚上')+'，找到 '+pack.items.length+' 組可轉乘';
  if(!pack.items.length){$('cards').innerHTML='<div class="empty"><h2>🚌 這時段無適合班次</h2><p>可改選早上、下午，或明天。</p></div>';}
- else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date)).join('');
+ else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date,item===best)).join('');
  $('more').hidden=pack.items.length<=8||showAll;$('more').textContent='顯示更多（共 '+pack.items.length+' 組）';
  $('outputNotice').textContent='⚠️ 高鐵是常態表，公車途中站是估計。非即時到站，可能臨時調整。高鐵轉公車至少25分鐘，公車轉高鐵至少30分鐘；請務必先向業者確認。';
  if(pack.actual&&pack.actual.status!=='derived')$('outputNotice').textContent='⚠️ 公車資料只有部分可用／無法完整確認。請勿只靠此表趕車！';
