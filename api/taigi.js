@@ -30,6 +30,22 @@ function voiceText(q){
  }
  return str;
 }
+// Make short, independent recordings: long TTS prompts can turn unintelligible near the end.
+function voiceSegments(q){
+ if(!voiceText(q))return null; // reuse strict whitelist for every route and time
+ const d=String(q.dir);
+ const hsr=digits(String(q.hsr)),first=sayBus(String(q.bus1)),second=sayBus(String(q.bus2));
+ if(d==='home')return [
+   '南港高鐵站，'+sayTime(q.hsrDep)+'，坐'+hsr+'號高鐵。',
+   '到雲林高鐵站，'+sayTime(q.bus1Dep)+'，坐'+first+'號公車。',
+   '虎尾，'+sayTime(q.bus2Dep)+'，換'+second+'號公車。約'+sayTime(q.end)+'到南公館。'
+ ];
+ return [
+   '南公館，約'+sayTime(q.bus1Dep)+'，坐'+first+'號公車。',
+   '到虎尾，約'+sayTime(q.bus2Dep)+'，轉'+second+'號公車。',
+   '雲林高鐵站，'+sayTime(q.hsrDep)+'，坐'+hsr+'號高鐵。'+sayTime(q.end)+'到南港。'
+ ];
+}
 function json(res,status,message,extra={}){
  res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');
  res.setHeader('Cache-Control','no-store');return res.end(JSON.stringify({ok:status===200,message,...extra}));
@@ -38,11 +54,16 @@ async function handler(req,res){
  if(req.method!=='GET')return json(res,405,'只支援GET');
  res.setHeader('X-Content-Type-Options','nosniff');
  if(String((req.query||{}).check||'')==='health')return json(res,200,'台語音訊端點已啟用',{version:'2026-10-14.7'});
- const probe=String((req.query||{}).check||'')==='phonetic';
- const testing=String((req.query||{}).check||'')==='1'||probe;
- const q=req.query||{},text=testing?'逐家好，請坐車。':voiceText(q);
+ const q=req.query||{},check=String(q.check||'');
+ const segments=voiceSegments(q);
+ if(check==='segments')return segments?json(res,200,'分段台語播報文字',{segments}):json(res,400,'車次資料格式不正確');
+ const probe=check==='phonetic';
+ const testing=check==='1'||probe;
+ const partText=q.part===undefined?'':String(q.part);
+ if(!testing&&partText&&!/^[012]$/.test(partText))return json(res,400,'語音段落只能是0、1或2');
+ const text=testing?'逐家好，請坐車。':partText?segments?.[Number(partText)]:voiceText(q);
  if(!text)return json(res,400,'車次資料格式不正確');
- const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end]);
+ const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText]);
  const hit=cache.get(key);
  if(hit&&!testing){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(hit);}
  try{
@@ -69,4 +90,4 @@ async function handler(req,res){
    res.statusCode=200;res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(buffer);
  }catch(err){return json(res,503,'台語語音連線逾時，請稍後再試或使用國語備用');}
 }
-module.exports=handler;module.exports._test={voiceText,sayTime,number};
+module.exports=handler;module.exports._test={voiceText,voiceSegments,sayTime,number};
