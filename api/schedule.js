@@ -89,4 +89,5 @@ async function handler(req,res){
  }catch(err){res.statusCode=503;return res.end(JSON.stringify({error:'暫時無法取得公路局時刻表'}));}
 }
 module.exports=handler;
+module.exports.fetchDay=fetchDay;
 module.exports._test={validDate,nextDate,dow,addMins,decodeText,canRun,projected,parseRoute};
