@@ -103,7 +103,7 @@ function playTai(t,i,onlyPart=null){
   if(!alive())return;
   failed=false;
   lastTaiPart={i,part,t};
-  sound.src='/api/taigi?part='+part+'&'+qs.toString();
+  sound.src='/api/taigi?v=10&part='+part+'&'+qs.toString();
   sound.playbackRate=.85;
   voiceStatus(i,'🔊 第 '+(part+1)+' 段：'+labels[part]+'，正在準備台語…');
   try{
