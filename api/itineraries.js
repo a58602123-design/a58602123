@@ -21,9 +21,9 @@ function build(day,bus){
    if(wait<MIN_HSR_TO_BUS||wait>180)continue;
    for(const b of tigerNan){
     const transfer=gap(b.dep,a.arr);
-    if(transfer<MIN_BUS_TO_BUS||transfer>100)continue;
-    if(gap(b.arr,th.dep)>330)continue;
-    choices.push({date:day,dir:'home',start:th.dep,end:b.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:wait,wait2:transfer,estimated:true});
+    if(transfer<MIN_BUS_TO_BUS)continue; // 長時間候車應顯示警示，不直接刪掉可行的晚班
+    // 不因總旅程超過330分鐘就錯誤排除晚班 7111。
+    choices.push({date:day,dir:'home',start:th.dep,end:b.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:wait,wait2:transfer,longWait:wait>90||transfer>90,estimated:true});
    }
   }
   choices.sort((x,y)=>minutes(x.end)-minutes(y.end)||x.wait1+x.wait2-(y.wait1+y.wait2));
@@ -37,7 +37,7 @@ function build(day,bus){
    for(const th of north){
     const wait=gap(th.dep,b.arr);
     if(wait<MIN_BUS_TO_HSR||wait>210)continue;
-    choices.push({date:day,dir:'train',start:a.dep,end:th.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:transfer,wait2:wait,estimated:true});
+    choices.push({date:day,dir:'train',start:a.dep,end:th.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:transfer,wait2:wait,longWait:transfer>90||wait>90,estimated:true});
    }
   }
   choices.sort((x,y)=>minutes(x.end)-minutes(y.end)||x.wait1+x.wait2-(y.wait1+y.wait2));
@@ -58,7 +58,7 @@ async function handler(req,res){
   const days=list.map(x=>build(x.date,x));
   res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
   res.statusCode=200;
-  return res.end(JSON.stringify({version:'ELDER-20261014.4',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
+  return res.end(JSON.stringify({version:'ELDER-20261014.5',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
  }catch(e){
   res.statusCode=503;return res.end(JSON.stringify({error:'目前無法確認高鐵或公車轉乘',info:String(e.message||e)}));
  }
