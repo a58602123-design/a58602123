@@ -1,121 +1,55 @@
 <!doctype html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#173e72">
-<meta name="description" content="高鐵雲林站與南公館雙向公車轉乘，長輩大字版，兩個大按鈕、語音播報。">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="雲林搭車">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<title>雲林搭車｜長輩專用</title>
-<style>
-:root{--navy:#173e72;--green:#166342;--ink:#152335;--orange:#8d4c00;--bg:#fffdf8;--gray:#405169;--border:#c8d2d7;--focus:#ffcf42}
-*{box-sizing:border-box}html{font-size:20px}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;-webkit-text-size-adjust:100%}body{padding-bottom:calc(18px + env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}
-button,input,select{font:inherit}button{touch-action:manipulation;cursor:pointer}button:focus-visible,a:focus-visible,summary:focus-visible{outline:5px solid var(--focus);outline-offset:3px}
-.shell{width:min(100%,530px);margin:auto;padding:calc(12px + env(safe-area-inset-top)) 16px 24px}
-.masthead{text-align:center}.masthead h1{font-size:1.65rem;line-height:1.25;margin:0;font-weight:950}.now{font-size:1.1rem;color:#243d61;font-weight:850;margin:10px 0 0}.prompt{font-size:1.38rem;font-weight:900;text-align:center;margin:16px 0 12px}
-.choices{display:grid;gap:16px}.choice{border:0;border-radius:28px;padding:16px 12px 19px;min-height:177px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 7px 0 #00000019,0 1px 8px #00000016;color:#fff;width:100%}.choice:active{transform:translateY(3px);box-shadow:0 4px 0 #00000016}.choice.home{background:var(--green)}.choice.station{background:var(--navy)}
-.picture{font-size:2.9rem;line-height:1.14;white-space:nowrap;letter-spacing:.01em}.bigLabel{font-size:1.8rem;font-weight:950;line-height:1.25;margin:8px 0 4px}.subLabel{font-size:1.02rem;font-weight:750;color:#fff;opacity:.96}
-#output[hidden]{display:none}.output{margin-top:20px;scroll-margin-top:12px}.topline{font-size:1.2rem;font-weight:900;text-align:center;margin:0 0 12px;padding:12px 10px;border-radius:16px;background:#eaf1ff;color:#173e72}
-.result{border:3px solid var(--navy);border-radius:26px;overflow:hidden;background:#fff;box-shadow:0 8px 18px #102e5d10}.resTitle{text-align:center;font-size:1.25rem;font-weight:900;padding:12px;background:#eef4ff}
-.stage{padding:17px 14px 18px;text-align:center}.stage+.stage{border-top:2px dashed #afbccf}.stageHead{font-size:1.4rem;font-weight:950}.bigTime{font-size:3.8rem;line-height:1.16;font-weight:1000;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--navy);white-space:nowrap;margin:4px 0 6px}.bigTime .guess,.toTime .guess{font-size:1rem;font-weight:900;color:#8b5500;vertical-align:middle;margin-right:.2em}.busNo{font-size:2.3rem;font-weight:1000;line-height:1.22;color:var(--ink);margin:7px 0}.where{font-size:1.3rem;font-weight:850;line-height:1.35;margin-top:7px}.toTime{font-size:2.45rem;font-weight:950;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--navy);margin:5px 0}.arrival{font-size:1.25rem;line-height:1.35;font-weight:850;text-align:center;padding:17px 12px;background:#e8f7ef;color:#134d35}.arrival strong{display:block;font-size:2.25rem;line-height:1.2;font-variant-numeric:tabular-nums;margin-top:5px}
-.notice{background:#fff1d7;color:#533600;border:2px solid #e7ba66;border-radius:18px;padding:15px 14px;font-size:1.08rem;font-weight:850;line-height:1.5;margin-top:14px}.voice{width:100%;border:0;border-radius:22px;padding:15px 8px;min-height:80px;margin-top:13px;background:#6b35ae;color:#fff;font-size:1.7rem;font-weight:950}.voice:disabled{background:#61666f}.refresh{width:100%;background:#fff;border:3px solid #173e72;color:#173e72;border-radius:20px;padding:13px 5px;font-size:1.25rem;font-weight:900;margin-top:12px;min-height:70px}
-.noData{background:#fff4de;border:3px solid #d18c2a;border-radius:25px;padding:20px 14px;text-align:center}.noData h2{font-size:1.6rem;line-height:1.3;margin:5px 0 12px}.noData p{font-size:1.1rem;line-height:1.5;font-weight:850}.linkHelp{display:block;padding:12px 10px;text-align:center;background:#fff;color:#143d78;border:3px solid #173e72;border-radius:18px;font-size:1.1rem;font-weight:900;text-decoration:none;margin-top:13px}
-.other{display:none}.caregiver{border-top:2px solid #c8d1d5;margin-top:24px;color:var(--gray)}.caregiver summary{padding:16px 4px;font-size:1.05rem;font-weight:850;cursor:pointer;list-style-position:inside}.careBody{background:#fff;border:1px solid #cbd6e1;border-radius:18px;padding:16px}.careBody p{font-size:.97rem;line-height:1.6;margin:4px 0 12px}.careBody label{display:block;margin:14px 0 6px;font-size:1rem;font-weight:800}.careBody select,.careBody input{min-height:56px;width:100%;border:2px solid #b3c4d7;background:white;color:var(--ink);border-radius:12px;padding:8px;font-size:1rem}.careBody a{color:#1346a0;text-decoration:underline;font-weight:750}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.actions button{border:2px solid var(--navy);background:white;border-radius:12px;color:var(--navy);font-weight:850;padding:12px;flex:1 1 120px;min-height:54px}.careBody .smallNote{font-size:.85rem;color:#4a5563;line-height:1.6;margin-top:14px}.endnote{font-size:.85rem;line-height:1.5;margin-top:18px;text-align:center;color:#47586e;font-weight:700}
-@media(max-width:370px){html{font-size:18px}.choice{min-height:160px}.bigTime{font-size:3.5rem}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
-</style>
-</head>
-<body>
-<main class="shell">
-<header class="masthead"><h1>🚌 雲林搭車</h1><p id="today" class="now">臺灣時間</p></header>
-<p class="prompt">請按一個大按鈕 👇</p>
-<section class="choices" aria-label="選擇要去哪裡">
- <button id="goHome" class="choice home" type="button" aria-label="從高鐵雲林站回南公館，立刻查車">
-   <span class="picture" aria-hidden="true">🚄 ➜ 🏠</span><span class="bigLabel">高鐵回家</span><span class="subLabel">高鐵雲林 → 南公館</span>
- </button>
- <button id="goTrain" class="choice station" type="button" aria-label="從南公館前往高鐵雲林站，立刻查車">
-   <span class="picture" aria-hidden="true">🏠 ➜ 🚄</span><span class="bigLabel">出門搭高鐵</span><span class="subLabel">南公館 → 高鐵雲林</span>
- </button>
+<html lang="zh-Hant"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="一鍵搭車"><meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#153b74"><meta name="description" content="長輩大字版：南港高鐵、雲林高鐵、虎尾、南公館雙向多組班次一鍵查，分享後可加到手機桌面。">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAEcElEQVR42u3coW4UURSH8e3kpqKC4Jo0GJCYhqQK3deoIRUoFKKPUIFCIRqeBI0iITVIMKSaVFSgEE0ItNN2d3Zn5px7f5/cLumcM9/9n3tnu2ztHhwtgKF0WgACgUAgEAgEEAgEAoFAIIBAIBAIBAIBBAKBQCBUQ4l2QZf7e+7K/Tw6vyAQaTbTrtllKrypQ6a5TCrUqcmk6TUq1KFRDoGoU6VGHXta2GsnTiDq1B1FHXtEUVCB2NOCQx17OBROIPa041DHHg4FEog9rTnUsYdDIQRiT5sO+YMyBBBI/DQbQh17OGSEIe0IEz+Nh5AEwnwJJH6EkATCTAkkfoSQBMLcpzAQyPzC8HsqgWCEgUBoSCAbINugv5QstV2dnbZ2O3eOT+JfZOFN/Nojm1Sok8WkmBoV6tCoqlMYe3L1p2iNKKohgdiTtGOdXnCoqj0QctFZRkIosUDsyd5DIwxpBRI/FXSy5OrUs9cfp/lF3z+8ivbbY1KyLJrJbl6cdbKSRldnp7M8WuwSNbQ1UlTd6aPa8wm0/Pxq2Z5VOzDLVtoxHvUKJH7i90ECgUAgEAgEAgEEAoFAIBAIIBAIBAKBQACBQCAQCAQCCAQCgUAgEAgUkURfEW+2DxIIVQskhIJ3oNNBtdc/wtp0KEXVJVc3G/mys/9gqs7O2pA5hYFAIBAIBBAIBAKBQCAQCCAQpibNRxlP375v6sb8ePeGQNRZt+r4GhlhqFqgNuMnUfkSCAQCgUAgECgeWR6HNFu+BMJalCyr0JNoApll9kBABIF2jk+0vo6uSiAQCA0KZIrV0U8JhLQCCaEKOimBkFkgIZS9hyVC/Vdnp0u++fHzw9sv/vr2KbUB6xQ1+wosqbv8748yalRBUSH2QA8uo3savdJ7stiz5HsibAC2dg+OVv03l/t7Y1xK7yAboEX8VbuRokay59H5RdYRdt2R5fdDds1G2APdGTaVgs+yNYuKdm4NNMJusP35S+/rP7/+F+ZPXhwmGmR32bNkUb9fHox9hauOsGQPEm80uveVdKQuKqhAvfFzV1t7Xw84yHovaaWi7krlGSl5l+mNn96O/Wjbhe1NFCWBUBUEAoFAIBBoXO7fTsbfbNZaVFCBep+Y3dXQ3tcneOamqHwj7HZbk2ZPNUUN+ShjMfenGcPWehAiF7Xq5xjRE2hYyyLbU19RTmFYi+gfZVyvvCVjP3j2VFnUwAQaMCzHjv0s9oQtatg9Lbna3btq06lTU1GlvlWbVKOkDN9ETzzFEHB+OYVh1mO8EGo8fiQQZk0gIdR4/EggzJ1AQqjl+NlYAnGoTXuMMIQRSAg1GD8bTiAOtWbP5kcYh5qyZ5Q9EIfasWesTTSHGrFnxFMYh1qwZ9xjPIeqt2cx9nMgDtVtz2KCv0i8vvppvkeG6RdwV00lmKXnZeJ6RFFly7XMUhuNqkn6MmOdNKpgk1Ai1MykvJvLEq0LZMp1Iim6gwTHeBAIIBAIBAKBQACBQCAQCAQCgQACgUAgEAgELMcfIAerLN5Mj1cAAAAASUVORK5CYII=">
+<link rel="stylesheet" href="/elder.css?v=4">
+<title>高鐵公車一鍵搭車｜長輩專用</title></head>
+<body><main class="app">
+<header><h1>🚄 高鐵公車搭車</h1><p id="clock">臺灣時間</p></header>
+<p class="prompt">欲去佗位？揀一項 👇</p>
+<section class="choices" aria-label="選擇搭車方向">
+<button id="home" class="route home" type="button" aria-label="南港搭高鐵，轉公車到南公館">
+<span class="emoji" aria-hidden="true">🚄 ➜ 🏠</span><span class="main">南港回南公館</span><span class="sub">南港 → 雲林 → 南公館</span></button>
+<button id="train" class="route train" type="button" aria-label="南公館搭公車，轉高鐵去南港">
+<span class="emoji" aria-hidden="true">🏠 ➜ 🚄</span><span class="main">南公館去南港</span><span class="sub">南公館 → 雲林 → 南港</span></button>
 </section>
-<section id="output" class="output" aria-live="polite" aria-atomic="true" hidden>
- <p class="topline" id="tripHeading">正在查車…</p>
- <div id="content"></div>
- <button id="repeat" class="voice" type="button" aria-label="把查車結果再唸一次">🔊 再聽一次</button>
- <button id="again" class="refresh" type="button">↻ 再查一次</button>
+<section id="output" class="output" aria-live="polite" hidden>
+<div class="heading" id="tripHeading"></div>
+<div id="slots" class="slots" role="group" aria-label="選時間">
+<button type="button" class="slot" data-slot="upcoming" aria-pressed="true">⏰ 現在以後</button>
+<button type="button" class="slot" data-slot="morning" aria-pressed="false">🌤️ 早上</button>
+<button type="button" class="slot" data-slot="afternoon" aria-pressed="false">☀️ 下午</button>
+<button type="button" class="slot" data-slot="night" aria-pressed="false">🌙 晚上</button></div>
+<button id="dayToggle" class="more" type="button">📅 顯示明天</button>
+<div id="count" class="count"></div>
+<div class="cards" id="cards"></div>
+<button id="more" class="more" type="button" hidden>顯示更多</button>
+<div class="notice" id="outputNotice"></div>
 </section>
-<details class="caregiver"><summary>👨‍👩‍👧 家人設定／分享</summary><div class="careBody">
- <p>長輩平常只要按上面兩個大按鈕，這裡不用設定。</p>
- <label for="station">從哪裡搭車</label>
- <select id="station"><option value="default">依上方大按鈕</option><option value="huwei">從虎尾公車站出發</option></select>
- <label for="date">指定日期（留空＝現在）</label><input id="date" type="date">
- <label for="time">指定時間（留空＝現在）</label><input id="time" type="time">
- <div class="actions"><button id="clear" type="button">恢復現在</button><button id="share" type="button">分享給家人</button></div>
- <p class="smallNote">iPhone 用 Safari 的分享鍵 →「加入主畫面」；Android 用 Chrome →「安裝應用程式／加入主畫面」。不用付費下載。</p>
- <p><a href="https://ebus.yunlin.gov.tw/driving-map" target="_blank" rel="noopener">雲林公車動態（官方）</a>　<a href="https://www.taiwanbus.tw/eBUSPage/Default.aspx?lan=C" target="_blank" rel="noopener">公路局班表</a></p>
-</div></details>
-<div class="endnote">表定班次不是公車即時定位；途中站時間為推估。<br>出門前請先核對當日公車動態。</div>
+<div class="actions">
+<button id="share" type="button">🔗 傳予家人<br><small>分享網址</small></button>
+<button id="install" type="button">📲 加到桌面<br><small>變成手機捷徑</small></button>
+</div><div id="message" role="status" aria-live="polite"></div>
+<details><summary>👨‍👩‍👧 家人設定（長輩不用開）</summary>
+<label for="date">出發日期</label><input id="date" type="date">
+<label for="time">預計出發時間</label><input id="time" type="time">
+<button class="more" id="reset" type="button">🔄 改回現在</button>
+<p>臺灣時間。高鐵為一般常態表、公車為業者公布班表；無法保證即時座位、準點與臨時停駛。南公館與虎尾途中站是推估，出門前務必再向客運確認。</p>
+</details>
+<footer><a href="https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c" target="_blank" rel="noopener">查高鐵官方時刻</a> · <a href="https://www.taiwanbus.tw/eBUSPage/Default.aspx?lan=C" target="_blank" rel="noopener">查公車官方班表</a><br>免費個人使用 · 非高鐵或客運官方 App</footer>
 </main>
-<script>
-(()=>{'use strict';
-const $=id=>document.getElementById(id),DTF=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false});
-let lastDirection=null,lastSpeech='',req=0,busy=false;
-const pad=n=>String(n).padStart(2,'0'),minutes=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5)),asEpoch=(date,t)=>Date.parse(date+'T'+t+':00+08:00'),addDay=s=>new Date(Date.parse(s+'T12:00:00+08:00')+86400000).toISOString().slice(0,10),labelDate=(d,start)=>d===start?'今天':d===addDay(start)?'明天':d;
-const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function nowTaiwan(){let entries=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false,hourCycle:'h23'}).formatToParts(new Date());let t={};entries.forEach(e=>{if(e.type!=='literal')t[e.type]=e.value});return {date:t.year+'-'+t.month+'-'+t.day,time:(t.hour==='24'?'00':t.hour)+':'+t.minute};}
-function refreshClock(){$('today').textContent=DTF.format(new Date()).replace('24:','00:');}
-function speak(text){if(!('speechSynthesis' in window)){return false;}try{speechSynthesis.cancel();let utter=new SpeechSynthesisUtterance(text);utter.lang='zh-TW';utter.rate=.82;utter.pitch=1;utter.volume=1;speechSynthesis.speak(utter);return true;}catch(e){return false;}}
-function timeSound(t){let parts=t.split(':').map(Number);return parts[0]+'點'+(parts[1]===0?'整':parts[1]+'分');}
-function getStart(){const now=nowTaiwan(),date=$('date').value||now.date,time=$('time').value||now.time;return {date,time};}
-function getPlan(data,direction,start,huwei){const first=direction==='home'?(huwei?'huwei_nan':'hsr_huwei'):(huwei?'huwei_hsr':'nan_huwei'),second=direction==='home'?'huwei_nan':'huwei_hsr';let options=[];
- for(const day of [start.date,addDay(start.date)]){
-  const info=(data.days||[]).find(x=>x.date===day);if(!info)continue;
-  const as=(info.trips||[]).filter(t=>t.leg===first),bs=(info.trips||[]).filter(t=>t.leg===second);
-  for(const a of as){if(asEpoch(day,a.dep)<asEpoch(start.date,start.time)+(huwei?5:8)*60000)continue;
-   if(first===second){options.push({date:day,a,b:null,arrival:asEpoch(day,a.arr),status:info.status});continue;}
-   for(const b of bs){let gap=(asEpoch(day,b.dep)-asEpoch(day,a.arr))/60000;if(gap>=15&&gap<=240){options.push({date:day,a,b,arrival:asEpoch(day,b.arr),status:info.status,transfer:gap});}}
-  }
- }
- // 同一抵達時間優先轉車等候最短的班次，避免讓長輩在虎尾多等幾小時。
- options.sort((x,y)=>x.arrival-y.arrival||(x.transfer??0)-(y.transfer??0)||asEpoch(y.date,y.a.dep)-asEpoch(x.date,x.a.dep));
- return options[0]||null;
-}
-function showLoading(direction){$('output').hidden=false;$('tripHeading').textContent=direction==='home'?'🚄 高鐵回家':'🏠 出門搭高鐵';$('content').innerHTML='<div class="noData" role="status"><h2>🚌 正在查車…</h2><p>請等一下</p></div>';$('repeat').disabled=true;$('again').disabled=true;$('output').scrollIntoView({behavior:'smooth',block:'start'});}
-function showFail(message){$('content').innerHTML='<div class="noData"><h2>⚠️ 現在無法確認班次</h2><p>'+esc(message)+'</p></div><a class="linkHelp" href="https://ebus.yunlin.gov.tw/driving-map" target="_blank" rel="noopener">🔎 請家人查官方動態</a>';
- lastSpeech='現在無法確認公車班次。請先不要依這個畫面出門。請家人協助查詢公車動態。';$('repeat').disabled=false;$('again').disabled=false;speak(lastSpeech);
-}
-function renderFound(o,direction,start,huwei,partial){let a=o.a,b=o.b,last=b||a;
- const firstStop=direction==='home'?(huwei?'虎尾公車站':'高鐵雲林站'):(huwei?'虎尾公車站':'南公館站');
- const dest=direction==='home'?'南公館':'高鐵雲林站',day=labelDate(o.date,start.date),today=o.date===start.date;
- const second=b?'<div class="stage"><div class="stageHead">🔁 虎尾轉車</div><div class="toTime">'+(b.depEstimated?'<span class="guess">約</span>':'')+esc(b.dep)+'</div><div class="busNo">🚌 '+esc(b.route)+'</div></div>':'';
- const flag=partial?'⚠️ 只查到部分路線，可能還有其他班次。':'⚠️ 途中站時間是估算，不是公車即時位置。';
- $('content').innerHTML='<article class="result"><div class="resTitle">'+(today?'🟢 今天搭這班':'📅 明天搭這班')+'（表定參考）</div><div class="stage"><div class="stageHead">'+esc(firstStop)+' 上車</div><div class="bigTime">'+(a.depEstimated?'<span class="guess">約</span>':'')+esc(a.dep)+'</div><div class="busNo">🚌 '+esc(a.route)+'</div></div>'+second+'<div class="arrival">🏁 到達 '+esc(dest)+'<strong>約 '+esc(last.arr)+'</strong></div></article><div class="notice">'+flag+'<br>請提早候車，出門前確認公車動態。</div>';
- lastSpeech=(day==='明天'?'明天':'今天')+'，在'+firstStop+'，'+(a.depEstimated?'大約':'')+timeSound(a.dep)+'，搭'+a.route.split('').join('、')+'號公車。'+(b?'到虎尾公車站轉車。'+timeSound(b.dep)+'，搭'+b.route.split('').join('、')+'號。':'不用轉車。')+'大約'+timeSound(last.arr)+'到'+dest+'。注意，途中站時間是估算，不是即時公車到站。請至少提前十五分鐘候車。';
- $('repeat').disabled=false;$('again').disabled=false;speak(lastSpeech);
-}
-async function query(direction){if(!direction)return;lastDirection=direction;const id=++req,start=getStart(),huwei=$('station').value==='huwei';showLoading(direction);
- // iOS may require audio to be initiated from the original touch/click gesture.
- speak('正在查公車。');busy=true;
- try{const control=new AbortController();const timer=setTimeout(()=>control.abort(),15000);let response;
-  try{response=await fetch('/api/schedule?date='+encodeURIComponent(start.date),{signal:control.signal,cache:'no-store'});}finally{clearTimeout(timer);}
-  if(!response.ok)throw new Error('查詢服務暫時無法使用');const data=await response.json();if(id!==req)return;
-  const selected=getPlan(data,direction,start,huwei);if(selected){const partial=(data.days||[]).some(x=>x.date===selected.date&&x.status==='partial');renderFound(selected,direction,start,huwei,partial);}else{
-   const broken=(data.days||[]).some(x=>x.status==='unavailable'||x.status==='partial');showFail(broken?'官方資料暫時無法完整取得，請家人幫忙確認。':'這兩天沒有找到能順利轉車的班次，請家人幫忙確認。');
-  }
- }catch(e){if(id!==req)return;showFail('公車班表連線失敗，請家人幫忙確認。');}finally{if(id===req)busy=false;}
-}
-$('goHome').addEventListener('click',()=>query('home'));
-$('goTrain').addEventListener('click',()=>query('train'));
-$('repeat').addEventListener('click',()=>{if(lastSpeech)speak(lastSpeech);});
-$('again').addEventListener('click',()=>query(lastDirection));
-$('clear').addEventListener('click',()=>{$('date').value='';$('time').value='';$('station').value='default';if(lastDirection)query(lastDirection);});
-$('share').addEventListener('click',async()=>{const url=location.origin+'/';if(navigator.share){try{await navigator.share({title:'雲林搭車｜長輩版',url});return;}catch(e){if(e.name==='AbortError')return;}}if(navigator.clipboard){try{await navigator.clipboard.writeText(url);alert('App 網址已複製，可以傳給其他手機');return;}catch(e){}}prompt('請複製網址傳給家人',url);});
-refreshClock();setInterval(refreshClock,30000);
-if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
-window.__YUNLIN_ELDER_TEST__={getStart,getPlan,query,speak,nowTaiwan};
-})();
-</script>
-</body>
-</html>
+<dialog id="installDialog" aria-labelledby="installTitle">
+<h2 id="installTitle">📲 放到手機桌面</h2>
+<p>把這個網址傳給家人之後，家人在自己的手機照下面操作一次。</p>
+<h3>🍎 iPhone（用 Safari 開啟）</h3>
+<ol><li>按下方的「分享」圖示 <strong>□↑</strong></li><li>往下找 <strong>「加入主畫面」</strong></li><li>按 <strong>「加入」</strong>，桌面就有圖示。</li></ol>
+<h3>🤖 Android（用 Chrome 開啟）</h3>
+<ol><li>按右上角 <strong>⋮</strong> 三點選單</li><li>按 <strong>「安裝應用程式」</strong> 或「加入主畫面」</li><li>按 <strong>「安裝」</strong>。</li></ol>
+<p>兩種手機都免費。不用到 App Store 找。</p>
+<button class="copy" id="copyLink" type="button">🔗 複製 App 網址</button>
+<button class="done" id="done" type="button">好，我知道了</button>
+</dialog>
+<script src="/elder.js?v=4" defer></script>
+</body></html>
