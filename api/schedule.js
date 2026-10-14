@@ -30,7 +30,20 @@ function projected(date,route,dir,departure){
   if(dir==='往程'&&route==='7104')add('huwei_hsr',0,16);
  }else if(id==='7111'){
   if(dir==='往程')add('huwei_nan',0,45);
-  else add('nan_huwei',7,60); // 保守估算：南公館提前約7分、最久到虎尾約60分；車況須再確認
+  else {
+   // 麥寮衛生所起站→南公館→虎尾，各班行車時間不同。
+   // 以公開站別時刻對照推估：南公館略提早2分候車；到虎尾額外抓5分緩衝。
+   // 非公車GPS即時資料；臨時調班仍應向業者查證。
+   const stopOffsets={
+     '07:40':[8,59],
+     '08:55':[5,47],
+     '09:50':[6,49],
+     '12:50':[11,61],
+     '17:05':[9,60]
+   };
+   const [from,to]=stopOffsets[departure]||[5,65];
+   add('nan_huwei',from,to);
+  }
  }else if(id==='7120'){
   // 7120 斗六→高鐵雲林站方向，途經虎尾，非反方向班次。
   if(dir==='往程')add('huwei_hsr',34,54);
