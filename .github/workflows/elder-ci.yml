@@ -37,3 +37,25 @@ jobs:
           curl -sSL --max-time 55 -o /tmp/voice-demo -w 'HTTP %{http_code} TYPE %{content_type}\n' "https://a58602123.vercel.app/api/taigi?check=1" || true
           head -c 700 /tmp/voice-demo || true
           echo
+
+      - name: 線上驗證7111五班及真實轉乘台語音檔
+        if: contains(github.event.head_commit.message, '[verify-trip-voice]')
+        run: |
+          sleep 35
+          echo "=== 正式網站最新7111班次 ==="
+          curl -fsSL --max-time 60 "https://a58602123.vercel.app/api/itineraries?date=2026-10-14&qa=$(date +%s)" -o /tmp/itineraries.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const d = JSON.parse(fs.readFileSync('/tmp/itineraries.json','utf8'));
+          for (const day of d.days) {
+            console.log(day.date, d.version, day.bus7111?.home?.map(b=>b.dep), "可接高鐵", [...new Set(day.home?.map(x=>x.bus2.dep))]);
+            if(day.date==='2026-10-14'){
+              const b=day.bus7111?.home?.map(x=>x.dep);
+              if(!Array.isArray(b)||b.length!==5||!b.includes('11:35')||!b.includes('18:20'))process.exitCode=1;
+            }
+          }
+          NODE
+          echo "=== 真正完整車次：1307 轉 7102A、7111 台語 MP3 ==="
+          curl -sSL --max-time 110 -o /tmp/real-trip.mp3 -w 'HTTP %{http_code} TYPE %{content_type} BYTES %{size_download}\n'             'https://a58602123.vercel.app/api/taigi?dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20'
+          file /tmp/real-trip.mp3
+          test "$(head -c3 /tmp/real-trip.mp3)" = 'ID3' || { head -c400 /tmp/real-trip.mp3; exit 1; }
