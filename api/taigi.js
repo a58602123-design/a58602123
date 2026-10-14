@@ -98,17 +98,17 @@ async function handler(req,res){
  const q=req.query||{},check=String(q.check||'');
  const segments=voiceSegments(q);
  if(check==='segments')return segments?json(res,200,'分段台語播報文字',{segments}):json(res,400,'車次資料格式不正確');
- const elevenCheck=check==='eleven',testing=check==='1'||elevenCheck;
+ const elevenCheck=check==='eleven',elevenAudio=check==='elevenAudio',testing=check==='1'||elevenCheck||elevenAudio;
  const partText=q.part===undefined?'':String(q.part);
  if(partText&&!/^[012]$/.test(partText))return json(res,400,'語音段落只能是0、1或2');
  const romanSegments=tailoSegments(q);
  if(check==='romanization')return romanSegments?json(res,200,'固定台羅拼音',{segments:romanSegments}):json(res,400,'車次資料格式不正確');
- const kip=elevenCheck?'tsa̍p-it tiám':testing?'ta̍k-ke hó':partText?romanSegments?.[Number(partText)]:romanSegments?.join(' ');
+ const kip=elevenCheck||elevenAudio?'tsa̍p-it tiám':testing?'ta̍k-ke hó':partText?romanSegments?.[Number(partText)]:romanSegments?.join(' ');
  if(!kip)return json(res,400,'車次資料格式不正確');
  if(elevenCheck)return json(res,200,'十一點的教育部台羅標準讀音',{kip});
- const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText,'tailo-v2']);
+ const key=testing?'check-'+check:JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText,'tailo-v2']);
  const hit=cache.get(key);
- if(hit&&!testing){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(hit);}
+ if(hit&&(!testing||elevenAudio)){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(hit);}
  try{
    const audio=await fetch('https://hapsing.ithuan.tw/bangtsam?taibun='+encodeURIComponent(kip),{
      headers:{'User-Agent':'Yunlin-family-pwa/1.0','Accept':'audio/mpeg'},signal:AbortSignal.timeout(25000)
@@ -119,7 +119,7 @@ async function handler(req,res){
       buffer.subarray(0,3).toString('ascii')==='ID3'||(buffer[0]===255 && (buffer[1]&224)===224)
    );
    if(!looksMp3||buffer.length>3*1024*1024)return json(res,503,'台語語音未成功產生，請改用國語');
-   if(testing)return json(res,200,'免費台語語音合成可用',{kip,size:buffer.length,type:audio.headers.get('content-type'),provider:'意傳科技・媠聲展示版'});
+   if(testing&&!elevenAudio)return json(res,200,'固定台羅音檔合成可用',{kip,size:buffer.length,type:audio.headers.get('content-type'),provider:'意傳科技・媠聲展示版'});
    cache.set(key,buffer);if(cache.size>MAX_CACHE)cache.delete(cache.keys().next().value);
    res.statusCode=200;res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(buffer);
  }catch(err){return json(res,503,'台語語音連線逾時，請稍後再試或使用國語備用');}
