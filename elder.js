@@ -21,7 +21,12 @@ function renderCard(t,n,base,best){const home=t.dir==='home',date=dayTitle(t.dat
   steps+=renderStep('🚌','虎尾公車站 → 雲林高鐵',t.bus2.route,t.bus2.dep,t.bus2.arr,true);
   steps+=renderStep('🚄','雲林高鐵 → 南港高鐵','高鐵 '+t.hsr.no,t.hsr.dep,t.hsr.arr,false);
  }
- return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div><div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div></article>';
+ const readableWait=m=>m>=60?Math.floor(m/60)+'小時'+(m%60?m%60+'分':''):m+'分鐘';
+ const longParts=[];
+ if(t.wait1>90)longParts.push((home?'雲林高鐵站':'虎尾站')+'要等'+readableWait(t.wait1));
+ if(t.wait2>90)longParts.push((home?'虎尾站':'雲林高鐵站')+'要等'+readableWait(t.wait2));
+ const caution=longParts.length?'<div class="longWait">⏳ 等車很久！<br>'+longParts.map(esc).join('、')+'。<br>請家人確認是否要改搭其他交通工具。</div>':'';
+ return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div>'+caution+'<div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div></article>';
 }
 function collect(){if(!data||!direction)return {items:[],date:getStart().date,actual:null};const start=getStart(),day=offset?addDay(start.date):start.date,record=(data.days||[]).find(x=>x.date===day);if(!record)return {items:[],date:day,actual:record};let items=(record[direction]||[]).slice();
  if(slot==='upcoming'){const min=day===twNow().date?timeInt(getStart().time)+15:0;items=items.filter(t=>timeInt(t.start)>=min);}
@@ -30,7 +35,7 @@ function collect(){if(!data||!direction)return {items:[],date:getStart().date,ac
  return {items,date:day,actual:record};}
 function paint(){if(!direction||!data)return;const base=getStart().date;
  let pack=collect();if(slot==='upcoming'&&offset===0&&!pack.items.length&&data.days.some(d=>d.date===addDay(base))){offset=1;pack=collect();}
- const date=dayTitle(pack.date,twNow().date),ranked=pack.items.slice().sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:[],more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
+ const date=dayTitle(pack.date,twNow().date),ranked=pack.items.filter(x=>!x.longWait).sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:pack.items.slice(),more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
  $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'，找到 '+pack.items.length+' 組可轉乘';
