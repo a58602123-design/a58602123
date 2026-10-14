@@ -1,0 +1,21 @@
+name: 長輩查車品質檢查
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 檢查 JavaScript
+        run: |
+          node --check elder.js
+          node --check api/schedule.js
+          node --check api/itineraries.js
+      - name: 執行固定班次與轉乘測試
+        run: node --test tests/*.test.js
