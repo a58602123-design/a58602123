@@ -82,3 +82,11 @@ jobs:
             node -e "const fs=require('fs');const f=fs.readFileSync('/tmp/taigi-${part}.mp3');if(f.length<2500||f.subarray(0,3).toString()!=='ID3')throw Error('Not valid MP3');console.log('MP3 bytes',f.length)"
             if [ "$part" != '2' ]; then sleep 23; fi
           done
+
+      - name: 驗證台語「十一點」拼音
+        if: contains(github.event.head_commit.message, '[check-eleven]')
+        run: |
+          sleep 12
+          curl -fsSL --max-time 40 'https://a58602123.vercel.app/api/taigi?check=eleven' -o /tmp/eleven.json
+          cat /tmp/eleven.json
+          echo
