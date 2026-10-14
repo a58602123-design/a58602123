@@ -26,7 +26,7 @@ function build(day,bus){
     choices.push({date:day,dir:'home',start:th.dep,end:b.arr,hsr:{no:th.no,dep:th.dep,arr:th.arr},bus1:a,bus2:b,wait1:wait,wait2:transfer,estimated:true});
    }
   }
-  choices.sort((x,y)=>minutes(x.end)-minutes(y.end)||x.wait1+y.wait2-(y.wait1+y.wait2));
+  choices.sort((x,y)=>minutes(x.end)-minutes(y.end)||x.wait1+x.wait2-(y.wait1+y.wait2));
   if(choices[0])home.push(choices[0]);
  }
  for(const a of nanTiger){
