@@ -6,9 +6,9 @@
 首頁只要按：**🚄 高鐵回家** 或 **🏠 出門搭高鐵**。系統顯示大字時間、車次、虎尾轉乘站點，並提供 **🔊 再聽一次** 國語播報。
 
 ## 免費部署：Vercel Hobby
-1. 開啟 https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fa58602123-design%2Fa58602123
-2. 使用自己的免費 Hobby 帳戶登入，必要時一次性授權 GitHub。
-3. 直接點 **Deploy**，框架選 **Other**，Root Directory 保持根目錄，Build Command 留白。
+1. 開啟 https://vercel.com/new，使用免費 Hobby 帳戶登入。
+2. 往下找到 **Import Git Repository**，首次使用要先授權 GitHub。
+3. 選擇 **a58602123-design/a58602123**，按 **Import → Deploy**。框架選 **Other**，Root Directory 保持根目錄，Build Command 留白。
 4. 部署完開啟 `*.vercel.app` 網址，將網址分享給其他手機。首頁的「家人設定／分享」也可複製分享網址。
 
 ## 重要限制
