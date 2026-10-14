@@ -1,1 +1,1 @@
-{"$schema":"https://openapi.vercel.sh/vercel.json","framework":null}
+{"$schema":"https://openapi.vercel.sh/vercel.json","framework":null,"functions":{"api/taigi.js":{"maxDuration":55}}}
