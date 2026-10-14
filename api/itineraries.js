@@ -45,7 +45,11 @@ function build(day,bus){
  }
  home.sort((x,y)=>minutes(x.start)-minutes(y.start));
  train.sort((x,y)=>minutes(x.start)-minutes(y.start));
- return {date:day,status:bus.status,notes:bus.notes,home,train,counts:{home:home.length,train:train.length},trainSource:'2026/02/02常態班表（非特殊日或即時資料）'};
+ const bus7111={
+   home:tigerNan.filter(t=>/^7111[A-B]?$/.test(t.route)).map(t=>({route:t.route,dep:t.dep,arr:t.arr,arrEstimated:!!t.arrEstimated})),
+   train:nanTiger.filter(t=>/^7111[A-B]?$/.test(t.route)).map(t=>({route:t.route,dep:t.dep,arr:t.arr,depEstimated:!!t.depEstimated,arrEstimated:!!t.arrEstimated}))
+ };
+ return {date:day,status:bus.status,notes:bus.notes,home,train,bus7111,counts:{home:home.length,train:train.length,bus7111Home:bus7111.home.length,bus7111Train:bus7111.train.length},trainSource:'2026/02/02常態班表（非特殊日或即時資料）'};
 }
 async function handler(req,res){
  res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -58,7 +62,7 @@ async function handler(req,res){
   const days=list.map(x=>build(x.date,x));
   res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
   res.statusCode=200;
-  return res.end(JSON.stringify({version:'ELDER-20261014.5',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
+  return res.end(JSON.stringify({version:'ELDER-20261014.6',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
  }catch(e){
   res.statusCode=503;return res.end(JSON.stringify({error:'目前無法確認高鐵或公車轉乘',info:String(e.message||e)}));
  }
