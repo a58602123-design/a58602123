@@ -34,17 +34,26 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
  $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'，找到 '+pack.items.length+' 組可轉乘';
+ const dailyBus=pack.actual?.bus7111?.[direction];
+ const busBox=$('busTimetable');busBox.hidden=false;
+ if(Array.isArray(dailyBus)&&dailyBus.length){
+   busBox.innerHTML='<div class="busTitle">🚌 7111 '+(direction==='home'?'虎尾 → 南公館':'南公館 → 虎尾')+'<br>'+date+'全部 '+dailyBus.length+' 班</div>'
+     +'<div class="busTimes">'+dailyBus.map(t=>'<div class="busChip">'+(t.depEstimated?'約 ':'')+esc(t.dep)+(t.route==='7111A'?'<small>7111A</small>':'')+'</div>').join('')+'</div>'
+     +'<p>▲ 這裡是 7111 自己的班表。下面才是能搭高鐵、再接公車的轉乘組合。不是每一班都接得上。</p>';
+ }else{
+   busBox.innerHTML='<div class="busTitle">🚌 7111 全部班次暫時無法確認</div><p>請家人查客運官方班表，不要把「查不到」當成「沒有車」。</p>';
+ }
  if(!pack.items.length){$('cards').innerHTML='<div class="empty"><h2>🚌 這時段無適合班次</h2><p>可改選早上、下午，或明天。</p></div>';}
  else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date,item===best)).join('');
  $('more').hidden=pack.items.length<=8||showAll;$('more').textContent='顯示更多（共 '+pack.items.length+' 組）';
  $('outputNotice').textContent='⚠️ 高鐵是常態表，公車途中站是估計。非即時到站，可能臨時調整。高鐵轉公車至少25分鐘，公車轉高鐵至少30分鐘；請務必先向業者確認。';
  if(pack.actual&&pack.actual.status!=='derived')$('outputNotice').textContent='⚠️ 公車資料只有部分可用／無法完整確認。請勿只靠此表趕車！';
 }
-async function query(dir){direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
+async function query(dir){direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
  try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),17000);let response;
   try{response=await fetch('/api/itineraries?date='+encodeURIComponent(start.date),{signal:controller.signal,cache:'no-store'});}finally{clearTimeout(timer);}
   if(!response.ok)throw Error('連線失敗');const incoming=await response.json();if(ticket!==requestId)return;data=incoming;paint();
- }catch(e){if(ticket!==requestId)return;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。</p></div>';$('outputNotice').textContent='系統無法連線時不會顯示不可靠的班次。';}
+ }catch(e){if(ticket!==requestId)return;$('busTimetable').hidden=true;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。</p></div>';$('outputNotice').textContent='系統無法連線時不會顯示不可靠的班次。';}
 }
 function digits(n){return String(n).split('').map(c=>({'0':'零','1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九','A':'欸','B':'比'}[c]||c)).join('');}
 function number(n){const a=['零','一','二','三','四','五','六','七','八','九','十'],v=Number(n);if(v<11)return a[v];if(v<20)return '十'+(v%10?a[v%10]:'');return a[Math.floor(v/10)]+'十'+(v%10?a[v%10]:'');}
