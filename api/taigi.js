@@ -37,7 +37,9 @@ function json(res,status,message,extra={}){
 async function handler(req,res){
  if(req.method!=='GET')return json(res,405,'只支援GET');
  res.setHeader('X-Content-Type-Options','nosniff');
- const testing=String((req.query||{}).check||'')==='1';
+ if(String((req.query||{}).check||'')==='health')return json(res,200,'台語音訊端點已啟用',{version:'2026-10-14.7'});
+ const probe=String((req.query||{}).check||'')==='phonetic';
+ const testing=String((req.query||{}).check||'')==='1'||probe;
  const q=req.query||{},text=testing?'逐家好，請坐車。':voiceText(q);
  if(!text)return json(res,400,'車次資料格式不正確');
  const key=testing?'check':JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end]);
@@ -52,6 +54,7 @@ async function handler(req,res){
    const data=await transliterated.json();
    const kip=String(data.KIP||'').trim();
    if(!kip||kip.length>450)return json(res,503,'台語標音失敗，請改用國語備用');
+   if(probe)return json(res,200,'台語標音服務可用',{kip});
    const audio=await fetch('https://hapsing.ithuan.tw/bangtsam?taibun='+encodeURIComponent(kip),{
      headers:{'User-Agent':'Yunlin-family-pwa/1.0','Accept':'audio/mpeg'},signal:AbortSignal.timeout(25000)
    });
