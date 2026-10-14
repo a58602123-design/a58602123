@@ -27,14 +27,13 @@ function collect(){if(!data||!direction)return {items:[],date:getStart().date,ac
  if(slot==='upcoming'){const min=day===twNow().date?timeInt(getStart().time)+15:0;items=items.filter(t=>timeInt(t.start)>=min);}
  if(slot==='morning')items=items.filter(t=>timeInt(t.start)>=300&&timeInt(t.start)<720);
  if(slot==='afternoon')items=items.filter(t=>timeInt(t.start)>=720&&timeInt(t.start)<1080);
- if(slot==='night')items=items.filter(t=>timeInt(t.start)>=1080);
  return {items,date:day,actual:record};}
 function paint(){if(!direction||!data)return;const base=getStart().date;
  let pack=collect();if(slot==='upcoming'&&offset===0&&!pack.items.length&&data.days.some(d=>d.date===addDay(base))){offset=1;pack=collect();}
  const date=dayTitle(pack.date,twNow().date),ranked=pack.items.slice().sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:[],more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
- $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':slot==='afternoon'?'下午':'晚上')+'，找到 '+pack.items.length+' 組可轉乘';
+ $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'，找到 '+pack.items.length+' 組可轉乘';
  if(!pack.items.length){$('cards').innerHTML='<div class="empty"><h2>🚌 這時段無適合班次</h2><p>可改選早上、下午，或明天。</p></div>';}
  else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date,item===best)).join('');
  $('more').hidden=pack.items.length<=8||showAll;$('more').textContent='顯示更多（共 '+pack.items.length+' 組）';
