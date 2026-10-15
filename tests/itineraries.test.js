@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const { _test:{build,MIN_HSR_TO_BUS,MIN_BUS_TO_BUS,MIN_BUS_TO_HSR,gap}}=require('../api/itineraries');
+const { _test:{build,MIN_HSR_TO_BUS,MIN_BUS_TO_BUS,MIN_BUS_TO_HSR,MIN_POSSIBLE_BUS_TO_HSR,gap}}=require('../api/itineraries');
 const { _test:{dow}}=require('../api/schedule');
 function fixture(day='2026-10-14'){
  const trip=(leg,route,dep,arr)=>({date:day,leg,route,dep,arr,estimated:true});
@@ -25,7 +25,8 @@ test('南公館→虎尾→高鐵雲林→南港有回程組合，至少30分鐘
  for(const r of data.train){
   assert.equal(r.dir,'train');assert.equal(r.bus1.leg,'nan_huwei');assert.equal(r.bus2.leg,'huwei_hsr');
   assert.ok(gap(r.bus2.dep,r.bus1.arr)>=MIN_BUS_TO_BUS);
-  assert.ok(gap(r.hsr.dep,r.bus2.arr)>=MIN_BUS_TO_HSR);
+  assert.ok(gap(r.hsr.dep,r.bus2.arr)>=MIN_POSSIBLE_BUS_TO_HSR);
+  assert.equal(r.transferRisk,gap(r.hsr.dep,r.bus2.arr)<MIN_BUS_TO_HSR);
   assert.notEqual(r.bus2.route,'7120');
  }
 });
@@ -65,4 +66,26 @@ test('下午高鐵仍可轉18:20的7111，即使虎尾要等很久也應標示',
  assert.equal(afternoon.bus2.dep,'18:20');
  assert.equal(afternoon.wait2,163);
  assert.equal(afternoon.longWait,true);
+});
+
+test('2026/10/16 官方高鐵四班 0814/0818/0822/0826 不因公車轉乘規則被隱藏',()=>{
+ const f=fixture('2026-10-16');
+ f.trips=f.trips.filter(x=>x.leg!=='nan_huwei'&&x.leg!=='huwei_hsr');
+ f.trips.push({date:f.date,leg:'nan_huwei',route:'7111',dep:'09:00',arr:'09:42',estimated:true});
+ f.trips.push({date:f.date,leg:'huwei_hsr',route:'7102B',dep:'10:23',arr:'10:46',estimated:true});
+ const result=build(f.date,f);
+ assert.deepEqual(
+  result.thsr.north.filter(x=>['814','818','822','826'].includes(x.no)).map(x=>[x.no,x.dep,x.arr]),
+  [['814','10:12','11:50'],['818','11:12','12:50'],['822','12:12','13:50'],['826','13:12','14:50']]
+ );
+ // 814 is already too early for a bus arriving at 10:46; still present in THSR timetable.
+ assert.equal(result.train.some(x=>x.hsr.no==='814'),false);
+ const early=result.train.find(x=>x.hsr.no==='818'&&x.bus1.dep==='09:00');
+ assert.ok(early,'11:12 818 must not disappear');
+ assert.equal(early.wait2,26);
+ assert.equal(early.transferRisk,true,'26 min must warn elderly traveller, not present as recommended');
+ const later=result.train.find(x=>x.hsr.no==='822'&&x.bus1.dep==='09:00');
+ assert.ok(later);
+ assert.equal(later.wait2,86);
+ assert.equal(later.transferRisk,false);
 });
