@@ -13,20 +13,22 @@ function heading(){return direction==='home'?'🚄 南港 → 南公館':'🏠 �
 function renderStep(emoji,name,route,from,to,approx){return '<div class="stage"><div class="mode">'+emoji+' '+esc(route)+'</div><div class="detail">'+(approx?'約 ':'')+esc(from)+' → '+(approx?'約 ':'')+esc(to)+'</div><div class="dest">'+esc(name)+'</div></div>';}
 function renderCard(t,n,base,best){const home=t.dir==='home',date=dayTitle(t.date,base);let steps='';
  if(home){
-  steps+=renderStep('🚄','南港高鐵 → 雲林高鐵','高鐵 '+t.hsr.no,t.hsr.dep,t.hsr.arr,false);
+  steps+=renderStep('🚄','南港高鐵 → 雲林高鐵','高鐵 '+String(t.hsr.no).padStart(4,'0'),t.hsr.dep,t.hsr.arr,false);
   steps+=renderStep('🚌','雲林高鐵 → 虎尾公車站',t.bus1.route,t.bus1.dep,t.bus1.arr,true);
   steps+=renderStep('🚌','虎尾公車站 → 南公館',t.bus2.route,t.bus2.dep,t.bus2.arr,true);
  }else{
   steps+=renderStep('🚌','南公館 → 虎尾公車站',t.bus1.route,t.bus1.dep,t.bus1.arr,true);
   steps+=renderStep('🚌','虎尾公車站 → 雲林高鐵',t.bus2.route,t.bus2.dep,t.bus2.arr,true);
-  steps+=renderStep('🚄','雲林高鐵 → 南港高鐵','高鐵 '+t.hsr.no,t.hsr.dep,t.hsr.arr,false);
+  steps+=renderStep('🚄','雲林高鐵 → 南港高鐵','高鐵 '+String(t.hsr.no).padStart(4,'0'),t.hsr.dep,t.hsr.arr,false);
  }
  const readableWait=m=>m>=60?Math.floor(m/60)+'小時'+(m%60?m%60+'分':''):m+'分鐘';
  const longParts=[];
  if(t.wait1>90)longParts.push((home?'雲林高鐵站':'虎尾站')+'要等'+readableWait(t.wait1));
  if(t.wait2>90)longParts.push((home?'虎尾站':'雲林高鐵站')+'要等'+readableWait(t.wait2));
- const caution=longParts.length?'<div class="longWait">⏳ 等車很久！<br>'+longParts.map(esc).join('、')+'。<br>請家人確認是否要改搭其他交通工具。</div>':'';
- return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 這時段全程最省時（估計） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div>'+caution+'<div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語慢慢聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div><div class="voiceStatus" data-voice-status="'+n+'" role="status" aria-live="polite"></div><button class="repeatTai" type="button" data-speak="'+n+'" data-lang="repeat">🔁 重聽剛才這段</button></article>';
+ const tight=t.dir==='train'&&t.transferRisk?
+  '<div class="dangerWait">⚠️ 有這班高鐵，但轉車太趕！<br>公車到高鐵站約 '+esc(t.bus2.arr)+'，高鐵 '+esc(t.hsr.dep)+' 出發，只相差約 '+t.wait2+' 分鐘。<br>公車到站是估計，長輩請選至少預留30分鐘的車次。</div>':'';
+ const caution=tight+(longParts.length?'<div class="longWait">⏳ 等車很久！<br>'+longParts.map(esc).join('、')+'。<br>請家人確認是否要改搭其他交通工具。</div>':'');
+ return '<article class="journey'+(best?' recommended':'')+'"><div class="cardhead"><div class="lead">'+(best?'⭐ 較穩妥轉乘（預留30分鐘） · ':'')+'第 '+(n+1)+' 組 · '+date+'</div><div class="depart">'+(t.bus1.depEstimated?'約 ':'')+esc(t.start)+' 出發</div></div>'+steps+'<div class="arrival">🏁 '+(home?'到南公館':'到南港高鐵')+'：'+(home?'約 ':'')+esc(t.end)+'</div>'+caution+'<div class="listen"><button class="tai" type="button" data-speak="'+n+'" data-lang="tai">🔊 台語慢慢聽</button><button class="zh" type="button" data-speak="'+n+'" data-lang="zh">🔈 國語備用</button></div><div class="voiceStatus" data-voice-status="'+n+'" role="status" aria-live="polite"></div><button class="repeatTai" type="button" data-speak="'+n+'" data-lang="repeat">🔁 重聽剛才這段</button></article>';
 }
 function collect(){if(!data||!direction)return {items:[],date:getStart().date,actual:null};const start=getStart(),day=offset?addDay(start.date):start.date,record=(data.days||[]).find(x=>x.date===day);if(!record)return {items:[],date:day,actual:record};let items=(record[direction]||[]).slice();
  if(slot==='upcoming'){const min=day===twNow().date?timeInt(getStart().time)+15:0;items=items.filter(t=>timeInt(t.start)>=min);}
@@ -35,10 +37,12 @@ function collect(){if(!data||!direction)return {items:[],date:getStart().date,ac
  return {items,date:day,actual:record};}
 function paint(){if(!direction||!data)return;const base=getStart().date;
  let pack=collect();if(slot==='upcoming'&&offset===0&&!pack.items.length&&data.days.some(d=>d.date===addDay(base))){offset=1;pack=collect();}
- const date=dayTitle(pack.date,twNow().date),ranked=pack.items.filter(x=>!x.longWait).sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:pack.items.slice(),more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
+ const date=dayTitle(pack.date,twNow().date),ranked=pack.items.filter(x=>!x.longWait&&!x.transferRisk).sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end)),best=ranked[0]||null,ordered=best?[best,...pack.items.filter(t=>t!==best)]:pack.items.slice(),more=showAll?ordered:ordered.slice(0,8);visibleOptions=more;
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
- $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'，找到 '+pack.items.length+' 組可轉乘';
+ const okCount=pack.items.filter(t=>!t.transferRisk).length;
+ const riskyCount=pack.items.filter(t=>t.transferRisk).length;
+ $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'：'+okCount+' 組可考慮'+(riskyCount?'，另有 '+riskyCount+' 組轉車較趕':'');
  const dailyBus=pack.actual?.bus7111?.[direction];
  const busBox=$('busTimetable');busBox.hidden=false;
  if(Array.isArray(dailyBus)&&dailyBus.length){
@@ -48,17 +52,39 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  }else{
    busBox.innerHTML='<div class="busTitle">🚌 7111 全部班次暫時無法確認</div><p>請家人查客運官方班表，不要把「查不到」當成「沒有車」。</p>';
  }
+ // 高鐵班次要獨立列出：30分鐘緩衝不足不代表沒有這班高鐵。
+ const railBox=$('thsrTimetable');
+ const sourceTrains=pack.actual?.thsr?.[direction==='train'?'north':'south'];
+ railBox.hidden=false;
+ if(Array.isArray(sourceTrains)&&sourceTrains.length){
+  const start=getStart();
+  const filtered=sourceTrains.filter(t=>{
+    const minute=timeInt(t.dep);
+    if(slot==='morning')return minute>=300&&minute<720;
+    if(slot==='afternoon')return minute>=720&&minute<1080;
+    if(pack.date===start.date&&slot==='upcoming')return minute>=timeInt(start.time);
+    return true;
+  });
+  const from=direction==='train'?'雲林':'南港',to=direction==='train'?'南港':'雲林';
+  railBox.innerHTML='<div class="railTitle">🚄 高鐵表定班次｜'+from+' → '+to+'</div>'
+   +'<p class="railIntro">這些是高鐵班次，<strong>不代表每班都能從公車順利轉乘</strong>。</p>'
+   +'<div class="railGrid">'+filtered.map(t=>'<div class="railTrip"><span class="railNo">高鐵 '+esc(String(t.no).padStart(4,'0'))+'</span>'
+   +'<strong>'+esc(t.dep)+'</strong><small>到'+to+' '+esc(t.arr)+'</small></div>').join('')+'</div>'
+   +'<p class="railIntro">此時段共 '+filtered.length+' 班；特殊日可能調整，以高鐵官網當日查詢為準。</p>';
+ }else{
+  railBox.innerHTML='<div class="railTitle">🚄 暫時無法確認高鐵完整時刻</div><p class="railIntro">不能把查不到當成沒有高鐵。</p>';
+ }
  if(!pack.items.length){$('cards').innerHTML='<div class="empty"><h2>🚌 這時段無適合班次</h2><p>可改選早上、下午，或明天。</p></div>';}
  else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date,item===best)).join('');
  $('more').hidden=pack.items.length<=8||showAll;$('more').textContent='顯示更多（共 '+pack.items.length+' 組）';
  $('outputNotice').textContent='⚠️ 高鐵是常態表，公車途中站是估計。非即時到站，可能臨時調整。高鐵轉公車至少25分鐘，公車轉高鐵至少30分鐘；請務必先向業者確認。';
  if(pack.actual&&pack.actual.status!=='derived')$('outputNotice').textContent='⚠️ 公車資料只有部分可用／無法完整確認。請勿只靠此表趕車！';
 }
-async function query(dir){stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
+async function query(dir){stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;direction=dir;slot='upcoming';offset=0;showAll=false;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
  try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),17000);let response;
   try{response=await fetch('/api/itineraries?date='+encodeURIComponent(start.date),{signal:controller.signal,cache:'no-store'});}finally{clearTimeout(timer);}
   if(!response.ok)throw Error('連線失敗');const incoming=await response.json();if(ticket!==requestId)return;data=incoming;paint();
- }catch(e){if(ticket!==requestId)return;$('busTimetable').hidden=true;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。</p></div>';$('outputNotice').textContent='系統無法連線時不會顯示不可靠的班次。';}
+ }catch(e){if(ticket!==requestId)return;$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。</p></div>';$('outputNotice').textContent='系統無法連線時不會顯示不可靠的班次。';}
 }
 function digits(n){return String(n).split('').map(c=>({'0':'零','1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九','A':'欸','B':'比'}[c]||c)).join('');}
 function number(n){const a=['零','一','二','三','四','五','六','七','八','九','十'],v=Number(n);if(v<11)return a[v];if(v<20)return '十'+(v%10?a[v%10]:'');return a[Math.floor(v/10)]+'十'+(v%10?a[v%10]:'');}
