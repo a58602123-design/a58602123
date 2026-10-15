@@ -119,3 +119,37 @@ jobs:
           curl -sSL --max-time 55 -w 'HTTP %{http_code} TYPE %{content_type} SIZE %{size_download}\n' -o /tmp/bus11.mp3 'https://a58602123.vercel.app/api/taigi?v=10&part=2&dir=home&hsr=1307&hsrDep=08%3A50&hsrArr=10%3A16&bus1=7102A&bus1Dep=10%3A55&bus2=7111&bus2Dep=11%3A35&end=12%3A20'
           file /tmp/bus11.mp3
           node -e "const f=require('fs').readFileSync('/tmp/bus11.mp3');if(f.subarray(0,3).toString()!=='ID3')throw new Error('Trip MP3 failed: '+f.toString().slice(0,300));console.log('trip MP3 bytes',f.length)"
+
+
+      - name: 驗證正式網站 10月16日高鐵班次與轉乘風險
+        if: contains(github.event.head_commit.message, '[verify-rail-20261016]')
+        run: |
+          sleep 28
+          echo '檢查正式網站與 10月16日雲林往南港的表定高鐵'
+          curl -fsSL --max-time 70 -o /tmp/rail.json 'https://a58602123.vercel.app/api/itineraries?date=2026-10-16'
+          node - <<'NODE'
+          const fs=require('fs'),d=JSON.parse(fs.readFileSync('/tmp/rail.json','utf8'));
+          const day=d.days.find(x=>x.date==='2026-10-16');
+          if(!day)throw Error('missing requested date');
+          const table=day.thsr?.north||[];
+          const expected=[['814','10:12','11:50'],['818','11:12','12:50'],['822','12:12','13:50'],['826','13:12','14:50']];
+          for(const [no,dep,arr] of expected){
+            if(!table.some(x=>x.no===no&&x.dep===dep&&x.arr===arr))throw Error('missing official HSR '+no+' '+dep);
+          }
+          const bus=(day.train||[]).filter(x=>x.bus1.route.startsWith('7111')&&x.bus2.route.startsWith('7102B'));
+          const maybe=bus.find(x=>x.hsr.no==='818'&&x.bus2.arr==='10:46');
+          const safe=bus.find(x=>x.hsr.no==='822'&&x.bus2.arr==='10:46');
+          if(!maybe||!maybe.transferRisk||maybe.wait2!==26)throw Error('818 should show 26min transfer risk');
+          if(!safe||safe.transferRisk||safe.wait2!==86)throw Error('822 should show 86min safe connection');
+          console.log('正式 API 版本:',d.version);
+          console.log('全部高鐵:',expected);
+          console.log('818:',maybe.hsr.dep,'轉乘僅',maybe.wait2,'分，風險標示',maybe.transferRisk);
+          console.log('822:',safe.hsr.dep,'轉乘',safe.wait2,'分，風險標示',safe.transferRisk);
+          NODE
+          curl -fsSL --max-time 20 'https://a58602123.vercel.app/?check=v12' -o /tmp/main.html
+          grep -q 'id="thsrTimetable"' /tmp/main.html
+          grep -q '/elder.js?v=12' /tmp/main.html
+          curl -fsSL --max-time 20 'https://a58602123.vercel.app/elder.js?v=12' -o /tmp/app.js
+          grep -q 'transferRisk' /tmp/app.js
+          grep -q 'railGrid' /tmp/app.js
+          echo '正式頁面 v12 和轉乘風險顯示腳本均正常'
