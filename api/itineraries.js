@@ -61,8 +61,15 @@ function build(day,bus){
    home:tigerNan.filter(t=>/^7111[A-B]?$/.test(t.route)).map(t=>({route:t.route,dep:t.dep,arr:t.arr,arrEstimated:!!t.arrEstimated})),
    train:nanTiger.filter(t=>/^7111[A-B]?$/.test(t.route)).map(t=>({route:t.route,dep:t.dep,arr:t.arr,depEstimated:!!t.depEstimated,arrEstimated:!!t.arrEstimated}))
  };
+ // 家人回報的學生專車與官方班表分開保存；未知行駛日及抵達時間不補值。
+ // 只加入班次展示，不加入 routes，避免編造高鐵轉乘或宣稱當日必定行駛。
+ const reportedBus={home:[],train:[{
+   route:'學生專車',from:'南公館',via:'臺西',to:'虎尾',dep:'06:50',arr:null,
+   depEstimated:true,reported:true,source:'家人實際搭乘',
+   officialConfirmed:false,operatingDays:null
+ }]};
  return {
-   date:day,status:bus.status,notes:bus.notes,home,train,bus7111,
+   date:day,status:bus.status,notes:bus.notes,home,train,bus7111,reportedBus,
    // 高鐵正確班表與「能不能接到公車」分離，避免沒列出被誤會為沒車。
    thsr:{north:north.map(t=>({no:t.no,dep:t.dep,arr:t.arr})),south:south.map(t=>({no:t.no,dep:t.dep,arr:t.arr}))},
    counts:{home:home.length,train:train.length,bus7111Home:bus7111.home.length,bus7111Train:bus7111.train.length},
@@ -80,7 +87,7 @@ async function handler(req,res){
   const days=list.map(x=>build(x.date,x));
   res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
   res.statusCode=200;
-  return res.end(JSON.stringify({version:'ELDER-20261015.1',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
+  return res.end(JSON.stringify({version:'ELDER-20261021.1',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
  }catch(e){
   res.statusCode=503;return res.end(JSON.stringify({error:'目前無法確認高鐵或公車轉乘',info:String(e.message||e)}));
  }

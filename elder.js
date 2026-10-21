@@ -44,11 +44,20 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  const riskyCount=pack.items.filter(t=>t.transferRisk).length;
  $('count').textContent=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'：'+okCount+' 組可考慮'+(riskyCount?'，另有 '+riskyCount+' 組轉車較趕':'');
  const dailyBus=pack.actual?.bus7111?.[direction];
+ const officialBus=Array.isArray(dailyBus)?dailyBus:[];
+ const reportedBus=Array.isArray(pack.actual?.reportedBus?.[direction])?pack.actual.reportedBus[direction]:[];
+ const displayedBus=[...officialBus,...reportedBus].sort((a,b)=>timeInt(a.dep)-timeInt(b.dep));
  const busBox=$('busTimetable');busBox.hidden=false;
- if(Array.isArray(dailyBus)&&dailyBus.length){
-   busBox.innerHTML='<div class="busTitle">🚌 7111 '+(direction==='home'?'虎尾 → 南公館':'南公館 → 虎尾')+'<br>'+date+'全部 '+dailyBus.length+' 班</div>'
-     +'<div class="busTimes">'+dailyBus.map(t=>'<div class="busChip">'+(t.depEstimated?'約 ':'')+esc(t.dep)+(t.route==='7111A'?'<small>7111A</small>':'')+'</div>').join('')+'</div>'
-     +'<p>▲ 這裡是 7111 自己的班表。下面才是能搭高鐵、再接公車的轉乘組合。不是每一班都接得上。</p>';
+ if(displayedBus.length){
+   const title=reportedBus.length?'🚌 南公館 → 臺西 → 虎尾':'🚌 7111 '+(direction==='home'?'虎尾 → 南公館':'南公館 → 虎尾');
+   const count=reportedBus.length
+     ?date+(officialBus.length?'公開班表 '+officialBus.length+' 班':'公開班次暫時無法確認')+'＋家人回報 '+reportedBus.length+' 班'
+     :date+'全部 '+officialBus.length+' 班';
+   busBox.innerHTML='<div class="busTitle">'+title+'<br>'+count+'</div>'
+     +'<div class="busTimes">'+displayedBus.map(t=>'<div class="busChip">'+(t.depEstimated?'約 ':'')+esc(t.dep)
+       +(t.reported?'<small>'+esc(t.route)+'<br>'+esc(t.source)+'<br>行駛日待確認</small>':t.route==='7111A'?'<small>7111A</small>':'')+'</div>').join('')+'</div>'
+     +(reportedBus.length?'<p>⚠️ 學生專車：家人曾以一般民眾身分搭乘，未獲官方確認。行駛日及到虎尾時間待確認，未納入下方高鐵轉乘計算。</p>':'')
+     +'<p>▲ 下面才是能搭高鐵、再接公車的轉乘組合。不是每一班都接得上。</p>';
  }else{
    busBox.innerHTML='<div class="busTitle">🚌 7111 全部班次暫時無法確認</div><p>請家人查客運官方班表，不要把「查不到」當成「沒有車」。</p>';
  }
