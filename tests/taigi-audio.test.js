@@ -57,6 +57,12 @@ test('台語按鈕等音檔開始後才放慢，國語備用仍在',()=>{
  assert.doesNotMatch(step,/playbackRate=\.85/);
  assert.match(fn,/addEventListener\('playing',\(\)=>\{slowDown\(\)/);
  assert.match(fn,/國語備用/);
+ assert.match(step,/volume=1/);
+ assert.match(fn,/gain\.value=2/);
+ const slow=fn.slice(fn.indexOf('function slowDown'),fn.indexOf('function step'));
+ assert.match(slow,/volume=1/);
+ assert.match(slow,/gain\.value=2/);
+ assert.match(js,/msg\.volume=1/);
  assert.match(fn,/error\.code/);
  assert.match(js,/function play\(i,lang\)/);
  assert.match(js,/zh-TW/);

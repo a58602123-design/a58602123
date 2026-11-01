@@ -20,8 +20,8 @@ test('主畫面圖示是實體 PNG，HTML 不再內嵌 base64',()=>{
  const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
  assert.doesNotMatch(html,/data:image\/png;base64/);
  assert.match(html,/apple-touch-icon\.png/);
- assert.match(html,/elder\.css\?v=13/);
- assert.match(html,/elder\.js\?v=13/);
+ assert.match(html,/elder\.css\?v=14/);
+ assert.match(html,/elder\.js\?v=14/);
  assert.match(html,/id="install"/);
  assert.match(html,/id="share"/);
  assert.match(html,/台語慢慢聽|國語備用/);
@@ -38,8 +38,8 @@ test('主畫面圖示是實體 PNG，HTML 不再內嵌 base64',()=>{
  assert.ok(srcs.some(x=>x.includes('/icon-512.png 512x512 image/png')));
  assert.match(sw,/pathname\.startsWith\('\/api\/'\)/);
  assert.doesNotMatch(sw,/ASSETS=\[[^\]]*\/api\//);
- assert.match(sw,/yunlin-elder-v13/);
- assert.match(sw,/elder\.js\?v=13/);
+ assert.match(sw,/yunlin-elder-v14/);
+ assert.match(sw,/elder\.js\?v=14/);
  const css=vercel.headers.find(h=>h.source==='/elder.css');
  const js=vercel.headers.find(h=>h.source==='/elder.js');
  const page=vercel.headers.find(h=>h.source==='/');

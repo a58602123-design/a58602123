@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-let direction=null,slot='upcoming',offset=0,requestId=0,data=null,visibleOptions=[],showAll=false,deferredInstall=null,staleSavedAt=null;
+let direction=null,slot='upcoming',offset=0,requestId=0,data=null,visibleOptions=[],showAll=false,showTables=false,earlyShown=[],deferredInstall=null,staleSavedAt=null;
 const STORE_KEY='yunlin-elder-cache-v1';
 const timeInt=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5));
 const twfmt=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'numeric',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false,hourCycle:'h23'});
@@ -69,15 +69,14 @@ function collect(){if(!data||!direction)return {items:[],date:getStart().date,ac
 function paint(){if(!direction||!data)return;const base=getStart().date;
  let pack=collect();if(slot==='upcoming'&&offset===0&&!pack.items.length&&data.days.some(d=>d.date===addDay(base))){offset=1;pack=collect();}
  const date=dayTitle(pack.date,twNow().date);
- const ranked=pack.items.filter(x=>!x.longWait&&!x.transferRisk).sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end));
- const best=ranked[0]||null;
- const rest=pack.items.filter(t=>t!==best);
- const reasonable=rest.filter(t=>!t.longWait);
- const delayed=rest.filter(t=>t.longWait);
- const ordered=best?[best,...reasonable,...delayed]:reasonable.concat(delayed);
- const more=showAll?ordered:(best?[best,...reasonable]:reasonable.slice());
- visibleOptions=more;
- const hiddenLong=ordered.length-more.length;
+ const safe=pack.items.filter(x=>!x.longWait&&!x.transferRisk).sort((a,b)=>(timeInt(a.end)-timeInt(a.start))-(timeInt(b.end)-timeInt(b.start))||timeInt(a.end)-timeInt(b.end));
+ const best=safe[0]||null;
+ const tight=pack.items.filter(t=>t.transferRisk&&!t.longWait).sort((a,b)=>(b.wait2||0)-(a.wait2||0)||timeInt(a.start)-timeInt(b.start));
+ const delayed=pack.items.filter(t=>t.longWait);
+ const primary=best||tight[0]||null;
+ const ordered=best?[best,...safe.slice(1),...tight,...delayed]:tight.concat(delayed);
+ const visible=showAll?ordered:(primary?[primary]:[]);
+ visibleOptions=visible;
  const staleEl=$('staleBanner');
  if(staleEl){if(staleSavedAt){staleEl.hidden=false;staleEl.textContent=staleBannerText(staleSavedAt);}else{staleEl.hidden=true;staleEl.textContent='';}}
  const basis=(pack.actual&&pack.actual.trainSource)||(data.source&&data.source.timetableBasis)||'';
@@ -85,19 +84,17 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  if(basisEl)basisEl.textContent=basis?('高鐵班表依據：'+basis):'高鐵班表依據：常態班表（非即時資料）';
  $('tripHeading').textContent=heading();$('dayToggle').textContent=offset?'📅 顯示今天':'📅 顯示明天';
  for(const button of document.querySelectorAll('.slot'))button.setAttribute('aria-pressed',button.dataset.slot===slot?'true':'false');
- const okCount=more.filter(t=>!t.transferRisk).length;
- const riskyCount=more.filter(t=>t.transferRisk).length;
- let summary=date+' · '+(slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午')+'：';
- if(okCount)summary+=okCount+' 組可考慮';
- if(riskyCount)summary+=(okCount?'，另有 ':'')+riskyCount+' 組轉車較趕';
- if(!okCount&&!riskyCount)summary+='沒有等候較短的組合';
- if(hiddenLong)summary+='。等很久的請按看更多';
+ const slotName=slot==='upcoming'?'現在以後':slot==='morning'?'早上':'下午';
+ let summary=date+' · '+slotName+'：';
+ if(primary&&!primary.transferRisk)summary+='建議先看這一組';
+ else if(primary)summary+='有車，但轉車較趕';
+ else summary+='這時段沒有較穩的組合';
  $('count').textContent=summary;
  const dailyBus=pack.actual?.bus7111?.[direction];
  const officialBus=Array.isArray(dailyBus)?dailyBus:[];
  const reportedBus=Array.isArray(pack.actual?.reportedBus?.[direction])?pack.actual.reportedBus[direction]:[];
  const displayedBus=[...officialBus,...reportedBus].sort((a,b)=>timeInt(a.dep)-timeInt(b.dep));
- const busBox=$('busTimetable');busBox.hidden=false;
+ const busBox=$('busTimetable');
  if(displayedBus.length){
    const title=reportedBus.length?'🚌 南公館 → 臺西 → 虎尾':'🚌 7111 '+(direction==='home'?'虎尾 → 南公館':'南公館 → 虎尾');
    const count=reportedBus.length
@@ -107,14 +104,13 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
      +'<div class="busTimes">'+displayedBus.map(t=>'<div class="busChip">'+(t.depEstimated?'約 ':'')+esc(t.dep)
        +(t.reported?'<small>'+esc(t.route)+'<br>'+esc(t.source)+'<br>行駛日待確認</small>':t.route==='7111A'?'<small>7111A</small>':'')+'</div>').join('')+'</div>'
      +(reportedBus.length?'<p>⚠️ 學生專車：家人曾以一般民眾身分搭乘，未獲官方確認。行駛日及到虎尾時間待確認，未納入下方高鐵轉乘計算。</p>':'')
-     +'<p>▲ 下面才是能搭高鐵、再接公車的轉乘組合。不是每一班都接得上。</p>';
+     +'<p>▲ 上面那一組才是建議的轉乘。這裡是全部班次，不是每一班都接得上高鐵。</p>';
  }else{
    busBox.innerHTML='<div class="busTitle">🚌 7111 全部班次暫時無法確認</div><p>請家人查客運官方班表，不要把「查不到」當成「沒有車」。</p>';
  }
  // 高鐵班次要獨立列出：30分鐘緩衝不足不代表沒有這班高鐵。
  const railBox=$('thsrTimetable');
  const sourceTrains=pack.actual?.thsr?.[direction==='train'?'north':'south'];
- railBox.hidden=false;
  if(Array.isArray(sourceTrains)&&sourceTrains.length){
   const start=getStart();
   const filtered=sourceTrains.filter(t=>{
@@ -133,20 +129,49 @@ function paint(){if(!direction||!data)return;const base=getStart().date;
  }else{
   railBox.innerHTML='<div class="railTitle">🚄 暫時無法確認高鐵完整時刻</div><p class="railIntro">不能把查不到當成沒有高鐵。</p>';
  }
- if(!ordered.length)$('cards').innerHTML='<div class="empty"><h2>🚌 這時段無適合班次</h2><p>可改選早上、下午，或明天。</p></div>';
- else if(!more.length)$('cards').innerHTML='<div class="empty"><h2>這時段沒有等候較短的組合</h2><p>等很久的班次請按下面「看更多」。</p></div>';
- else $('cards').innerHTML=more.map((item,i)=>renderCard(item,i,twNow().date,item===best)).join('');
- $('more').hidden=hiddenLong<=0;$('more').textContent='看更多（還有 '+hiddenLong+' 組等很久）';
+ const earlyAll=Array.isArray(pack.actual?.reportedBus?.[direction])?pack.actual.reportedBus[direction].filter(t=>t&&t.dep):[];
+ const viewing=offset?addDay(getStart().date):getStart().date;
+ const earlyFits=dep=>{
+  if(showAll)return true;
+  if(slot==='morning')return timeInt(dep)<720;
+  if(slot==='afternoon')return false;
+  if(viewing!==twNow().date)return true;
+  return timeInt(dep)>=timeInt(getStart().time);
+ };
+ const earlyVisible=earlyAll.filter(t=>earlyFits(t.dep));
+ earlyShown=earlyVisible;
+ if(earlyVisible.length)$('count').textContent+='。清晨學生專車也在上面';
+ const earlyEl=$('earlyBus');
+ if(earlyEl){
+  earlyEl.innerHTML=earlyVisible.map((t,i)=>'<article class="earlyBus"><div class="cardhead"><div class="lead">清晨學生專車 · 不是高鐵轉乘</div><div class="depart">'+(t.depEstimated?'約 ':'')+esc(t.dep)+' 出發</div></div><div class="stage"><div class="mode">🚌 '+esc(t.route||'學生專車')+'</div><div class="detail">'+esc(t.from||'南公館')+' → '+esc(t.via||'臺西')+' → '+esc(t.to||'虎尾')+'</div><div class="dest">'+esc(t.source||'家人實際搭乘')+' · 行駛日待確認 · 未獲官方確認</div></div><div class="longWait">這班是家人實際搭乘，行駛日待確認。到虎尾的時間還不知道，沒有算進高鐵轉乘。</div><div class="listen"><button class="zh" type="button" data-early="'+i+'">🔊 國語聽這班公車</button></div></article>').join('');
+ }
+ if(!ordered.length)$('cards').innerHTML='<div class="empty"><h2>這時段沒有接得上的高鐵組合</h2><p>可改選早上、下午，或明天。</p></div>';
+ else if(!visible.length)$('cards').innerHTML='<div class="empty"><h2>這時段沒有較穩的組合</h2><p>其他班次請按「看更多」。</p></div>';
+ else $('cards').innerHTML=visible.map((item,i)=>renderCard(item,i,twNow().date,item===best&&!item.transferRisk)).join('');
+ const hiddenTrips=ordered.length-visible.length;
+ const hiddenEarly=earlyAll.length-earlyVisible.length;
+ const hiddenTotal=hiddenTrips+hiddenEarly;
+ $('more').hidden=hiddenTotal<=0;
+ let moreText='看更多';
+ if(hiddenTotal){
+  moreText='看更多（還有 '+hiddenTotal+' 項）';
+  if(hiddenEarly)moreText+='，含 '+(earlyAll.find(t=>!earlyVisible.includes(t))||{}).dep+' 學生專車';
+ }
+ $('more').textContent=moreText;
+ const tablesBtn=$('tables');
+ if(tablesBtn){tablesBtn.hidden=!!showTables;tablesBtn.textContent='看全部公車和高鐵班次';}
+ busBox.hidden=!showTables;
+ railBox.hidden=!showTables;
  let notice='⚠️ 高鐵是常態表，公車途中站是估計。非即時到站，可能臨時調整。高鐵轉公車至少25分鐘，公車轉高鐵至少30分鐘；請務必先向業者確認。';
  if(pack.actual&&pack.actual.status!=='derived')notice='⚠️ 公車資料只有部分可用／無法完整確認。請勿只靠此表趕車！';
  if(staleSavedAt)notice='⚠️ 上面「資料時間」是先前查到的班表，不是剛剛連線的結果。'+notice;
  $('outputNotice').textContent=notice;
 }
-async function query(dir){stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;direction=dir;slot='upcoming';offset=0;showAll=false;staleSavedAt=null;const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;$('more').hidden=true;$('outputNotice').textContent='';const pendingBanner=$('staleBanner');if(pendingBanner){pendingBanner.hidden=true;pendingBanner.textContent='';}const pendingBasis=$('scheduleBasis');if(pendingBasis)pendingBasis.textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
+async function query(dir){stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;direction=dir;slot='upcoming';offset=0;showAll=false;showTables=false;staleSavedAt=null;earlyShown=[];const ticket=++requestId,start=getStart();$('output').hidden=false;$('tripHeading').textContent=heading();$('count').textContent='🚌 正在查班次，請稍等…';$('cards').innerHTML='';const pendingEarly=$('earlyBus');if(pendingEarly)pendingEarly.innerHTML='';$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;$('more').hidden=true;const pendingTables=$('tables');if(pendingTables)pendingTables.hidden=true;$('outputNotice').textContent='';const pendingBanner=$('staleBanner');if(pendingBanner){pendingBanner.hidden=true;pendingBanner.textContent='';}const pendingBasis=$('scheduleBasis');if(pendingBasis)pendingBasis.textContent='';$('output').scrollIntoView({block:'start',behavior:'smooth'});
  try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),17000);let response;
   try{response=await fetch('/api/itineraries?date='+encodeURIComponent(start.date),{signal:controller.signal,cache:'no-store'});}finally{clearTimeout(timer);}
   if(!response.ok)throw Error('連線失敗');const incoming=await response.json();if(ticket!==requestId)return;if(!incoming||!Array.isArray(incoming.days))throw Error('資料不完整');data=incoming;staleSavedAt=null;remember(start.date,incoming);paint();
- }catch(e){if(ticket!==requestId)return;const cached=recall(start.date);if(cached){data=cached.payload;staleSavedAt=cached.savedAt;paint();return;}$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;const failBanner=$('staleBanner');if(failBanner)failBanner.hidden=true;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。這台手機還沒有這天可顯示的舊班表。</p></div>';$('outputNotice').textContent='系統無法連線，也沒有這天先前查到的班表，所以不會顯示其他日子的車次。';}
+ }catch(e){if(ticket!==requestId)return;const cached=recall(start.date);if(cached){data=cached.payload;staleSavedAt=cached.savedAt;paint();return;}$('busTimetable').hidden=true;$('thsrTimetable').hidden=true;const failEarly=$('earlyBus');if(failEarly)failEarly.innerHTML='';const failTables=$('tables');if(failTables)failTables.hidden=true;const failBanner=$('staleBanner');if(failBanner)failBanner.hidden=true;$('count').textContent='⚠️ 暫時無法查車';$('cards').innerHTML='<div class="empty"><h2>⚠️ 查不到車次</h2><p>請家人協助查官方時刻表。這台手機還沒有這天可顯示的舊班表。</p></div>';$('outputNotice').textContent='系統無法連線，也沒有這天先前查到的班表，所以不會顯示其他日子的車次。';}
 }
 function digits(n){return String(n).split('').map(c=>({'0':'零','1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九','A':'欸','B':'比'}[c]||c)).join('');}
 function number(n){const a=['零','一','二','三','四','五','六','七','八','九','十'],v=Number(n);if(v<11)return a[v];if(v<20)return '十'+(v%10?a[v%10]:'');return a[Math.floor(v/10)]+'十'+(v%10?a[v%10]:'');}
@@ -158,6 +183,23 @@ function voiceWords(t,tai){const d=t.dir==='home';let s=d?'欲對南港去南公
  else{s+=step('南公館',t.bus1.route,t.bus1.dep,t.bus1.arr,false)+step('虎尾公車站',t.bus2.route,t.bus2.dep,t.bus2.arr,false)+step('雲林高鐵站',t.hsr.no,t.hsr.dep,t.hsr.arr,true)+('到南港高鐵站，'+timeTai(t.end)+'。');}
  return s+(tai?'時間若有變動，愛記得先確認。':'途中站是估計時間，務必提前候車。');}
 function taiVoice(){if(!('speechSynthesis' in window))return null;return speechSynthesis.getVoices().find(v=>/^(nan|nan-TW)(-|$)/i.test(v.lang)||/\b(Taiwanese Hokkien|Tai-gi|Taigi|Min Nan)\b/i.test(v.name));}
+let loudCtx=null;
+function boostLoud(sound){
+ try{sound.volume=1;}catch(e){}
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC||sound._boosted)return;
+ try{
+  if(!loudCtx)loudCtx=new AC();
+  if(loudCtx.resume)loudCtx.resume();
+  const src=loudCtx.createMediaElementSource(sound);
+  const gain=loudCtx.createGain();
+  gain.gain.value=2;
+  const comp=loudCtx.createDynamicsCompressor();
+  comp.threshold.value=-8;comp.knee.value=6;comp.ratio.value=3;comp.attack.value=0.003;comp.release.value=0.15;
+  src.connect(gain);gain.connect(comp);comp.connect(loudCtx.destination);
+  sound._boosted=true;sound._gain=gain;
+ }catch(e){}
+}
 // Keep each Taiwanese recording short. This avoids the late-phrase gibberish of long syntheses.
 let activeAudio=null,audioSession=0,lastTaiPart=null;
 function stopTai(){
@@ -196,6 +238,8 @@ function playTai(t,i,onlyPart=null){
   try{sound.playbackRate=.85;}catch(e){}
   try{sound.preservesPitch=true;}catch(e){}
   try{if('webkitPreservesPitch' in sound)sound.webkitPreservesPitch=true;}catch(e){}
+  try{sound.volume=1;}catch(e){}
+  if(sound._gain)try{sound._gain.gain.value=2;}catch(e){}
  }
  function step(){
   if(!alive())return;
@@ -203,6 +247,8 @@ function playTai(t,i,onlyPart=null){
   lastTaiPart={i,part,t};
   // iPhone rejects play() if playbackRate is not 1 before the file is ready.
   try{sound.playbackRate=1;}catch(e){}
+  try{sound.volume=1;}catch(e){}
+  boostLoud(sound);
   sound.src='/api/taigi?v=11&part='+part+'&'+qs.toString();
   voiceStatus(i,'🔊 第 '+(part+1)+' 段：'+labels[part]+'，正在準備台語…');
   try{
@@ -226,6 +272,20 @@ function playTai(t,i,onlyPart=null){
   }
  });
  step();
+}
+function speakEarly(t){
+ if(!t)return;
+ stopTai();
+ if(!('speechSynthesis' in window)){displayNotice('這台手機沒有國語語音。');return;}
+ try{
+  speechSynthesis.cancel();
+  const msg=new SpeechSynthesisUtterance('清晨'+timeTai(t.dep)+'，南公館學生專車，經過臺西到虎尾。這是家人實際搭過的，行駛日還沒確認，沒有算進高鐵轉乘。');
+  const voice=speechSynthesis.getVoices().find(v=>/^zh-TW/i.test(v.lang))||null;
+  if(voice)msg.voice=voice;
+  msg.lang='zh-TW';msg.rate=.85;msg.pitch=1;msg.volume=1;
+  speechSynthesis.speak(msg);
+  displayNotice('正在用國語說清晨學生專車');
+ }catch(e){displayNotice('這台手機暫時無法播放國語。');}
 }
 function play(i,lang){
  const t=visibleOptions[i];if(!t)return;
@@ -253,10 +313,12 @@ async function share(){const u=location.origin+'/';if(navigator.share){try{await
 function clock(){$('clock').textContent=twfmt.format(new Date()).replace('24:','00:');}
 $('home').addEventListener('click',()=>query('home'));
 $('train').addEventListener('click',()=>query('train'));
-$('slots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;slot=b.dataset.slot;showAll=false;paint();});
-$('dayToggle').addEventListener('click',()=>{stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;offset=offset?0:1;showAll=false;paint();});
+$('slots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;slot=b.dataset.slot;showAll=false;showTables=false;paint();});
+$('dayToggle').addEventListener('click',()=>{stopTai();if('speechSynthesis' in window)speechSynthesis.cancel();lastTaiPart=null;offset=offset?0:1;showAll=false;showTables=false;paint();});
 $('more').addEventListener('click',()=>{showAll=true;paint();});
+$('tables').addEventListener('click',()=>{showTables=true;paint();});
 $('cards').addEventListener('click',e=>{const b=e.target.closest('[data-speak]');if(b)play(Number(b.dataset.speak),b.dataset.lang);});
+$('earlyBus').addEventListener('click',e=>{const b=e.target.closest('[data-early]');if(b)speakEarly(earlyShown[Number(b.dataset.early)]);});
 $('share').addEventListener('click',share);$('install').addEventListener('click',install);$('done').addEventListener('click',()=>$('installDialog').close());
 $('copyLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.origin+'/');displayNotice('網址已複製，可傳給家人');$('installDialog').close();}catch(e){prompt('複製網址',location.origin+'/');}});
 $('date').addEventListener('change',()=>{if(direction)query(direction);});
@@ -265,5 +327,5 @@ $('reset').addEventListener('click',()=>{$('date').value='';$('time').value='';i
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;});
 clock();setInterval(clock,30000);
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
-window.__YUNLIN_ELDER_TEST__={getStart,collect,twNow,play,query,paint,showMore(){showAll=true;paint();},recall};
+window.__YUNLIN_ELDER_TEST__={getStart,collect,twNow,play,query,paint,showMore(){showAll=true;paint();},openTables(){showTables=true;paint();},setSlot(name){slot=name;showAll=false;showTables=false;paint();},recall};
 })();
