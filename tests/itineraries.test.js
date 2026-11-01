@@ -44,6 +44,14 @@ test('過短公車轉乘不得排進推薦清單',()=>{
  const data=build(day,f);
  assert.equal(data.home.find(x=>x.hsr.no==='1307'),undefined);
 });
+test('高鐵班表依據與資料檔相同，並寫明生效日與核對日',()=>{
+ const thsr=require('../data/thsr-weekly.json');
+ const data=build('2026-10-14',fixture('2026-10-14'));
+ assert.equal(data.trainSource,thsr.trainSource);
+ assert.match(thsr.trainSource,/2026\/02\/02/);
+ assert.match(thsr.trainSource,/2026\/10\/02/);
+ assert.match(thsr.trainSource,/非即時/);
+});
 test('依日期不同，高鐵常態週班表服務內容須有分別',()=>{
  const a=build('2026-10-14',fixture('2026-10-14'));
  const b=build('2026-10-18',fixture('2026-10-18'));

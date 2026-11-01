@@ -1,10 +1,13 @@
 /* 南港高鐵 ⇄ 雲林高鐵 ⇄ 南公館：表定多時段轉乘查詢。
  * 高鐵採自2026-02-02生效的常態週班表，不是即時／特殊日班表。
+ * 畫面上的「高鐵班表依據」來自 data/thsr-weekly.json 的 trainSource。更新方式見 README。
  * 公車由公路局網站下載起站表定，途中站時間只供估計。
+ * 同一日期的公路局結果在這個行程實例記憶體保留 10 分鐘，並請 CDN 快取 10 分鐘。不編造班次。
  */
 'use strict';
-const {fetchDay,_test:{validDate,nextDate,dow}}=require('./schedule');
+const {fetchDay,setScheduleCache,scheduleCacheLabel,SCHEDULE_CACHE_SECONDS,_test:{validDate,nextDate,dow}}=require('./schedule');
 const THSR=require('../data/thsr-weekly.json');
+const TRAIN_SOURCE=THSR.trainSource||THSR.basis||'2026/02/02常態班表（非特殊日或即時資料）';
 const minutes=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
 const gap=(after,before)=>minutes(after)-minutes(before);
 const byDep=(a,b)=>minutes(a.dep)-minutes(b.dep);
@@ -73,7 +76,7 @@ function build(day,bus){
    // 高鐵正確班表與「能不能接到公車」分離，避免沒列出被誤會為沒車。
    thsr:{north:north.map(t=>({no:t.no,dep:t.dep,arr:t.arr})),south:south.map(t=>({no:t.no,dep:t.dep,arr:t.arr}))},
    counts:{home:home.length,train:train.length,bus7111Home:bus7111.home.length,bus7111Train:bus7111.train.length},
-   trainSource:'2026/02/02常態班表（非特殊日或即時資料）'
+   trainSource:TRAIN_SOURCE
  };
 }
 async function handler(req,res){
@@ -85,9 +88,10 @@ async function handler(req,res){
  try{
   const list=await Promise.all([fetchDay(day),fetchDay(nextDate(day))]);
   const days=list.map(x=>build(x.date,x));
-  res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
+  setScheduleCache(res);
+  res.setHeader('X-Schedule-Cache',scheduleCacheLabel(list));
   res.statusCode=200;
-  return res.end(JSON.stringify({version:'ELDER-20261021.1',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:'2026/02/02常態表；途中站估時、未列臨時增減班'},checkedAt:new Date().toISOString(),days}));
+  return res.end(JSON.stringify({version:'ELDER-20261101.1',timeZone:'Asia/Taipei',source:{thsr:'https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c',bus:'https://www.taiwanbus.tw/',timetableBasis:TRAIN_SOURCE},checkedAt:new Date().toISOString(),cache:{ttlSeconds:SCHEDULE_CACHE_SECONDS,memory:scheduleCacheLabel(list)},days}));
  }catch(e){
   res.statusCode=503;return res.end(JSON.stringify({error:'目前無法確認高鐵或公車轉乘',info:String(e.message||e)}));
  }

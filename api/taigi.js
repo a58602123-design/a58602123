@@ -91,10 +91,44 @@ function json(res,status,message,extra={}){
  res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');
  res.setHeader('Cache-Control','no-store');return res.end(JSON.stringify({ok:status===200,message,...extra}));
 }
-async function handler(req,res){
- if(req.method!=='GET')return json(res,405,'只支援GET');
+// iPhone Safari probes audio with Range: bytes=0-1 and will not start playback
+// when that probe comes back as a full 200. Partial responses must not be stored
+// as if they were the whole MP3.
+function sendMp3(req,res,buffer){
+ res.setHeader('Content-Type','audio/mpeg');
+ res.setHeader('Accept-Ranges','bytes');
  res.setHeader('X-Content-Type-Options','nosniff');
- if(String((req.query||{}).check||'')==='health')return json(res,200,'台語音訊端點已啟用',{version:'2026-10-14.7'});
+ const total=buffer.length;
+ const range=String((req.headers&&(req.headers.range||req.headers.Range))||'');
+ const match=/^bytes=(\d+)-(\d*)$/.exec(range);
+ if(!match){
+  res.statusCode=200;
+  res.setHeader('Content-Length',String(total));
+  res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');
+  return res.end(buffer);
+ }
+ let start=Number(match[1]);
+ let end=match[2]===''?total-1:Number(match[2]);
+ if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||start>=total||end<start){
+  res.statusCode=416;
+  res.setHeader('Content-Range','bytes */'+total);
+  res.setHeader('Cache-Control','no-store');
+  return res.end();
+ }
+ end=Math.min(end,total-1);
+ const slice=buffer.subarray(start,end+1);
+ res.statusCode=206;
+ res.setHeader('Content-Range','bytes '+start+'-'+end+'/'+total);
+ res.setHeader('Content-Length',String(slice.length));
+ res.setHeader('Cache-Control','private, no-store');
+ res.setHeader('CDN-Cache-Control','no-store');
+ res.setHeader('Vercel-CDN-Cache-Control','no-store');
+ return res.end(slice);
+}
+async function handler(req,res){
+ if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,'只支援GET');
+ res.setHeader('X-Content-Type-Options','nosniff');
+ if(String((req.query||{}).check||'')==='health')return json(res,200,'台語音訊端點已啟用',{version:'2026-11-01.1'});
  const q=req.query||{},check=String(q.check||'');
  const segments=voiceSegments(q);
  if(check==='segments')return segments?json(res,200,'分段台語播報文字',{segments}):json(res,400,'車次資料格式不正確');
@@ -108,7 +142,7 @@ async function handler(req,res){
  if(elevenCheck)return json(res,200,'十一點的教育部台羅標準讀音',{kip});
  const key=testing?'check-'+check:JSON.stringify([q.dir,q.hsr,q.bus1,q.bus2,q.hsrDep,q.hsrArr,q.bus1Dep,q.bus2Dep,q.end,partText,'tailo-v2']);
  const hit=cache.get(key);
- if(hit&&(!testing||elevenAudio)){res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(hit);}
+ if(hit&&(!testing||elevenAudio))return sendMp3(req,res,hit);
  try{
    const audio=await fetch('https://hapsing.ithuan.tw/bangtsam?taibun='+encodeURIComponent(kip),{
      headers:{'User-Agent':'Yunlin-family-pwa/1.0','Accept':'audio/mpeg'},signal:AbortSignal.timeout(25000)
@@ -121,7 +155,7 @@ async function handler(req,res){
    if(!looksMp3||buffer.length>3*1024*1024)return json(res,503,'台語語音未成功產生，請改用國語');
    if(testing&&!elevenAudio)return json(res,200,'固定台羅音檔合成可用',{kip,size:buffer.length,type:audio.headers.get('content-type'),provider:'意傳科技・媠聲展示版'});
    cache.set(key,buffer);if(cache.size>MAX_CACHE)cache.delete(cache.keys().next().value);
-   res.statusCode=200;res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','public, max-age=86400, s-maxage=604800');return res.end(buffer);
+   return sendMp3(req,res,buffer);
  }catch(err){return json(res,503,'台語語音連線逾時，請稍後再試或使用國語備用');}
 }
 module.exports=handler;module.exports._test={voiceText,voiceSegments,sayTime,number,tailoNumber,tailoTime,tailoSegments};

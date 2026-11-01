@@ -4,6 +4,38 @@
  */
 'use strict';
 const ROUTES=['7102','7104','7111','7120'];
+// Same-day bus pages change rarely. Keep 10 minutes in this instance, and ask the CDN
+// to serve that window (then at most 5 more minutes while it refreshes). No invented trips.
+const SCHEDULE_CACHE_SECONDS=600;
+const DAY_CACHE_MS=SCHEDULE_CACHE_SECONDS*1000;
+const dayCache=new Map();
+function cacheGet(date,now){
+ const hit=dayCache.get(date);
+ if(!hit)return null;
+ if((now||Date.now())-hit.savedAt>=DAY_CACHE_MS){dayCache.delete(date);return null;}
+ return hit.value;
+}
+function cacheSet(date,value,now){
+ if(!value||value.status==='unavailable')return;
+ dayCache.set(date,{savedAt:now||Date.now(),value});
+ if(dayCache.size<=16)return;
+ let oldestKey=null,oldestAt=Infinity;
+ for(const [key,entry] of dayCache){if(entry.savedAt<oldestAt){oldestAt=entry.savedAt;oldestKey=key;}}
+ if(oldestKey)dayCache.delete(oldestKey);
+}
+function clearDayCache(){dayCache.clear();}
+function setScheduleCache(res){
+ const cdn='public, s-maxage='+SCHEDULE_CACHE_SECONDS+', stale-while-revalidate=300';
+ res.setHeader('Cache-Control',cdn);
+ res.setHeader('CDN-Cache-Control',cdn);
+ res.setHeader('Vercel-CDN-Cache-Control',cdn);
+}
+function scheduleCacheLabel(list){
+ const hits=(list||[]).filter(x=>x&&x.fromMemory).length;
+ if(hits&&hits===(list||[]).length)return 'memory';
+ if(hits)return 'partial';
+ return 'live';
+}
 const DAY_NAMES={'日':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};
 function formatDate(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
 function validDate(day){if(!/^20\d\d-\d\d-\d\d$/.test(day))return false;const d=new Date(day+'T12:00:00+08:00');return !isNaN(d.getTime()) && formatDate(d)===day;}
@@ -77,11 +109,11 @@ function parseRoute(page,route,date){let plain=decodeText(page);
  }
  return result;
 }
-async function fetchDay(date){
+async function fetchDayUncached(date,fetcher){
  const results=await Promise.all(ROUTES.map(async id=>{
   try{
    const url='https://www.taiwanbus.tw/eBUSPage/json/TimeTableAPIByWeek.aspx?RouteId='+id+'&SearchDate='+encodeURIComponent(date.replace(/-/g,'/'));
-   const response=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (compatible; YunlinBusApp/1.0)','Accept':'text/html'},signal:AbortSignal.timeout(8500)});
+   const response=await fetcher(url,{headers:{'User-Agent':'Mozilla/5.0 (compatible; YunlinBusApp/1.0)','Accept':'text/html'},signal:AbortSignal.timeout(8500)});
    if(!response.ok)throw new Error('HTTP '+response.status);
    const html=await response.text();const list=parseRoute(html,id,date);
    if(!list.length && !html.match(/未營運|停駛/))throw new Error('無法解析班表');
@@ -91,16 +123,27 @@ async function fetchDay(date){
  const trips=results.flatMap(x=>x.list),errors=results.map(x=>x.error).filter(Boolean);
  return {date,status:!trips.length?'unavailable':errors.length?'partial':'derived',trips,notes:errors.length?errors.join('；'):'依公路局起站時刻推估途中站時間；非即時車輛位置',checkedAt:new Date().toISOString()};
 }
+async function fetchDay(date,fetcher){
+ const cached=cacheGet(date);
+ if(cached)return Object.assign({},cached,{fromMemory:true});
+ const value=await fetchDayUncached(date,fetcher||fetch);
+ cacheSet(date,value);
+ return Object.assign({},value,{fromMemory:false});
+}
 async function handler(req,res){
  res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method!=='GET'){res.statusCode=405;return res.end(JSON.stringify({error:'只支援 GET'}));}
  const date=String((req.query||{}).date||'');if(!validDate(date)){res.statusCode=400;return res.end(JSON.stringify({error:'日期錯誤'}));}
  try{
   const two=await Promise.all([fetchDay(date),fetchDay(nextDate(date))]);
-  res.setHeader('Cache-Control','public, s-maxage=240, stale-while-revalidate=60');
-  res.statusCode=200;return res.end(JSON.stringify({checkedAt:new Date().toISOString(),days:two}));
+  setScheduleCache(res);
+  res.setHeader('X-Schedule-Cache',scheduleCacheLabel(two));
+  res.statusCode=200;return res.end(JSON.stringify({checkedAt:new Date().toISOString(),cache:{ttlSeconds:SCHEDULE_CACHE_SECONDS,memory:scheduleCacheLabel(two)},days:two}));
  }catch(err){res.statusCode=503;return res.end(JSON.stringify({error:'暫時無法取得公路局時刻表'}));}
 }
 module.exports=handler;
 module.exports.fetchDay=fetchDay;
-module.exports._test={validDate,nextDate,dow,addMins,decodeText,canRun,projected,parseRoute};
+module.exports.setScheduleCache=setScheduleCache;
+module.exports.scheduleCacheLabel=scheduleCacheLabel;
+module.exports.SCHEDULE_CACHE_SECONDS=SCHEDULE_CACHE_SECONDS;
+module.exports._test={validDate,nextDate,dow,addMins,decodeText,canRun,projected,parseRoute,clearDayCache,cacheGet,cacheSet,SCHEDULE_CACHE_SECONDS,DAY_CACHE_MS};

@@ -1,1 +1,18 @@
-{"name":"南港雲林高鐵公車一鍵搭車｜長輩版","short_name":"一鍵搭車","description":"超大字、超大按鈕，南港高鐵與南公館往返的多時段高鐵＋公車轉乘、語音提示、跨手機分享及主畫面捷徑","lang":"zh-TW","start_url":"/","scope":"/","display":"standalone","background_color":"#f7f7f2","theme_color":"#153b74","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "南港雲林高鐵公車一鍵搭車｜長輩版",
+  "short_name": "一鍵搭車",
+  "description": "超大字、超大按鈕，南港高鐵與南公館往返的多時段高鐵＋公車轉乘、語音提示、跨手機分享及主畫面捷徑",
+  "lang": "zh-TW",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#173e72",
+  "theme_color": "#153b74",
+  "icons": [
+    {"src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any"},
+    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}

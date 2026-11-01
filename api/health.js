@@ -1,9 +1,9 @@
 'use strict';
-const {fetchDay,_test:{validDate}}=require('./schedule');
+const {fetchDay,setScheduleCache,_test:{validDate}}=require('./schedule');
 const { _test:{build} }=require('./itineraries');
 module.exports=async function(req,res){
  res.setHeader('Content-Type','application/json; charset=utf-8');
- res.setHeader('Cache-Control','public, s-maxage=180');
+ setScheduleCache(res);
  const d=String((req.query||{}).date||'');
  if(!validDate(d)){res.status(400).end(JSON.stringify({error:'日期錯誤'}));return;}
  try{
