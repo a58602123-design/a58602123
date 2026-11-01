@@ -146,10 +146,10 @@ jobs:
           console.log('818:',maybe.hsr.dep,'轉乘僅',maybe.wait2,'分，風險標示',maybe.transferRisk);
           console.log('822:',safe.hsr.dep,'轉乘',safe.wait2,'分，風險標示',safe.transferRisk);
           NODE
-          curl -fsSL --max-time 20 'https://a58602123.vercel.app/?check=v12' -o /tmp/main.html
+          curl -fsSL --max-time 20 'https://a58602123.vercel.app/?check=v13' -o /tmp/main.html
           grep -q 'id="thsrTimetable"' /tmp/main.html
-          grep -q '/elder.js?v=12' /tmp/main.html
-          curl -fsSL --max-time 20 'https://a58602123.vercel.app/elder.js?v=12' -o /tmp/app.js
+          grep -q '/elder.js?v=13' /tmp/main.html
+          curl -fsSL --max-time 20 'https://a58602123.vercel.app/elder.js?v=13' -o /tmp/app.js
           grep -q 'transferRisk' /tmp/app.js
           grep -q 'railGrid' /tmp/app.js
-          echo '正式頁面 v12 和轉乘風險顯示腳本均正常'
+          echo '正式頁面 v13 和轉乘風險顯示腳本均正常'

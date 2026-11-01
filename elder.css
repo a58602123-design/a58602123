@@ -27,6 +27,8 @@ header{text-align:center;margin-bottom:14px}header h1{font-size:2rem;margin:0;li
 .railTrip .railNo{font-size:.78rem;font-weight:850;color:#304d78}
 .railTrip strong{font-size:1.65rem;color:#143c72;line-height:1.25;font-variant-numeric:tabular-nums}
 .railTrip small{font-size:.78rem;font-weight:850;color:#4c5c74}
+.staleBanner{border:4px solid #9d3412;background:#ffe4d8;color:#6a220c;border-radius:18px;padding:14px 12px;margin:0 0 14px;font-size:1.12rem;font-weight:950;line-height:1.45}
+.basisLine{font-size:1.05rem;font-weight:850;line-height:1.45;color:#173864;background:#e7f0ff;border-radius:16px;padding:12px;margin:14px 0}
 .notice{border-radius:18px;background:#fff1d5;padding:14px 12px;margin-top:18px;font-size:.92rem;line-height:1.5;color:#573400;font-weight:850}.empty{border:3px dashed #cad5df;background:white;border-radius:22px;padding:23px 16px;text-align:center;line-height:1.6}.empty h2{font-size:1.3rem;margin:0 0 5px}.empty p{font-size:1rem;margin:0}
 .more{width:100%;margin-top:15px;border:2px solid var(--navy);background:white;color:var(--navy);border-radius:16px;min-height:76px;font-size:1.14rem;font-weight:1000}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:27px 0 12px}.actions button{min-height:92px;border-radius:18px;border:2px solid #b9cad6;background:white;padding:10px;font-size:1.03rem;font-weight:950}
