@@ -4,7 +4,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="一鍵搭車"><meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#153b74"><meta name="description" content="長輩大字版：南港高鐵、雲林高鐵、虎尾、南公館雙向多組班次一鍵查，分享後可加到手機桌面。">
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
-<link rel="stylesheet" href="/elder.css?v=13">
+<link rel="stylesheet" href="/elder.css?v=14">
 <title>高鐵公車一鍵搭車｜長輩專用</title></head>
 <body><main class="app">
 <header><h1>🚄 高鐵公車搭車</h1><p id="clock">臺灣時間</p></header>
@@ -25,11 +25,13 @@
 </div>
 <button id="dayToggle" class="more" type="button">📅 顯示明天</button>
 <div id="count" class="count"></div>
-<section id="busTimetable" class="busTimetable" hidden aria-label="7111公車今日全部班次"></section>
 <p id="scheduleBasis" class="basisLine"></p>
-<section id="thsrTimetable" class="railTimetable" hidden aria-label="高鐵完整班次時刻表"></section>
+<div id="earlyBus"></div>
 <div class="cards" id="cards"></div>
 <button id="more" class="more" type="button" hidden>看更多</button>
+<button id="tables" class="more" type="button" hidden>看全部公車和高鐵班次</button>
+<section id="busTimetable" class="busTimetable" hidden aria-label="7111公車今日全部班次"></section>
+<section id="thsrTimetable" class="railTimetable" hidden aria-label="高鐵完整班次時刻表"></section>
 <div class="notice" id="outputNotice"></div>
 </section>
 <div class="actions">
@@ -55,5 +57,5 @@
 <button class="copy" id="copyLink" type="button">🔗 複製 App 網址</button>
 <button class="done" id="done" type="button">好，我知道了</button>
 </dialog>
-<script src="/elder.js?v=13" defer></script>
+<script src="/elder.js?v=14" defer></script>
 </body></html>

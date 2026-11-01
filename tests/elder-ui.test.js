@@ -31,7 +31,7 @@ function day(){
  };
 }
 
-function boot(storage){
+function boot(storage,customDay){
  const elements=new Map();
  const element=id=>{
   if(!elements.has(id))elements.set(id,{
@@ -49,7 +49,7 @@ function boot(storage){
   setInterval(){},setTimeout,clearTimeout,
   fetch:async()=>{
    if(!online)throw Error('offline');
-   return {ok:true,json:async()=>({days:[day()],source:{timetableBasis:SOURCE}})};
+   return {ok:true,json:async()=>({days:[customDay||day()],source:{timetableBasis:SOURCE}})};
   }
  };
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','elder.js'),'utf8'),context);
@@ -60,25 +60,32 @@ function memoryStorage(){
  return {getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>{mem.set(k,String(v));}};
 }
 
-test('預設只顯示等候合理的組合，轉車風險仍警告，久候留在看更多',async()=>{
+test('第一屏只留一組較穩的，其餘與久候都在看更多',async()=>{
  const view=boot(memoryStorage());
  await view.app.query('train');
  const cards=view.element('cards').innerHTML;
+ assert.equal((cards.match(/<article/g)||[]).length,1);
  assert.match(cards,/08:10/);
- assert.match(cards,/轉車太趕/);
- assert.match(cards,/26 分鐘/);
+ assert.match(cards,/較穩妥/);
  assert.match(cards,/台語慢慢聽/);
  assert.match(cards,/國語備用/);
- assert.doesNotMatch(cards,/12:30/);
+ assert.doesNotMatch(cards,/轉車太趕|12:30/);
  assert.equal(view.element('more').hidden,false);
  assert.match(view.element('more').textContent,/看更多/);
- assert.match(view.element('more').textContent,/等很久/);
+ assert.equal(view.element('busTimetable').hidden,true);
+ assert.equal(view.element('thsrTimetable').hidden,true);
+ assert.equal(view.element('tables').hidden,false);
  assert.match(view.element('scheduleBasis').textContent,/高鐵班表依據：2026\/02\/02起常態班表/);
  assert.equal(view.element('staleBanner').hidden,true);
  view.app.showMore();
+ assert.match(view.element('cards').innerHTML,/轉車太趕/);
+ assert.match(view.element('cards').innerHTML,/26 分鐘/);
  assert.match(view.element('cards').innerHTML,/12:30/);
  assert.match(view.element('cards').innerHTML,/等車很久/);
  assert.equal(view.element('more').hidden,true);
+ view.app.openTables();
+ assert.equal(view.element('busTimetable').hidden,false);
+ assert.equal(view.element('thsrTimetable').hidden,false);
 });
 
 test('連線失敗時顯示同一天舊資料與資料時間，別天的舊資料不拿來充數',async()=>{
@@ -100,6 +107,8 @@ test('連線失敗時顯示同一天舊資料與資料時間，別天的舊資�
  assert.match(view.element('staleBanner').textContent,/不是即時班次/);
  assert.doesNotMatch(view.element('staleBanner').textContent,/超過兩天/);
  assert.match(view.element('cards').innerHTML,/08:10/);
+ assert.doesNotMatch(view.element('cards').innerHTML,/轉車太趕/);
+ view.app.showMore();
  assert.match(view.element('cards').innerHTML,/轉車太趕/);
  assert.match(view.element('outputNotice').textContent,/不是剛剛連線/);
  const store=JSON.parse(storage.getItem('yunlin-elder-cache-v1'));
@@ -112,4 +121,35 @@ test('連線失敗時顯示同一天舊資料與資料時間，別天的舊資�
  assert.match(view.element('cards').innerHTML,/查不到車次/);
  assert.doesNotMatch(view.element('cards').innerHTML,/06:15/);
  assert.equal(view.element('staleBanner').hidden,true);
+});
+
+test('只有較趕的班次時，第一屏仍顯示轉車警告',async()=>{
+ const custom=day();
+ custom.train=custom.train.filter(t=>t.transferRisk);
+ const view=boot(memoryStorage(),custom);
+ await view.app.query('train');
+ const cards=view.element('cards').innerHTML;
+ assert.equal((cards.match(/<article/g)||[]).length,1);
+ assert.match(cards,/轉車太趕/);
+ assert.match(cards,/26 分鐘/);
+});
+
+test('06:50 學生專車出現在去南港的第一屏，下午改到看更多，回程不出現',async()=>{
+ const custom=day();
+ custom.reportedBus={home:[],train:[{route:'學生專車',from:'南公館',via:'臺西',to:'虎尾',dep:'06:50',depEstimated:true,reported:true,source:'家人實際搭乘',officialConfirmed:false}]};
+ const view=boot(memoryStorage(),custom);
+ await view.app.query('train');
+ const early=view.element('earlyBus').innerHTML;
+ for(const label of ['06:50','學生專車','家人實際搭乘','行駛日待確認','未獲官方確認','南公館 → 臺西 → 虎尾'])assert.match(early,new RegExp(label));
+ assert.equal((view.element('cards').innerHTML.match(/<article/g)||[]).length,1);
+ assert.equal((view.element('busTimetable').innerHTML.match(/06:50/g)||[]).length,1);
+ assert.match(view.element('count').textContent,/清晨學生專車/);
+ view.app.setSlot('afternoon');
+ assert.equal(view.element('earlyBus').innerHTML,'');
+ assert.match(view.element('more').textContent,/06:50 學生專車/);
+ view.app.showMore();
+ assert.match(view.element('earlyBus').innerHTML,/06:50/);
+ await view.app.query('home');
+ assert.equal(view.element('earlyBus').innerHTML,'');
+ assert.doesNotMatch(view.element('busTimetable').innerHTML,/06:50|學生專車/);
 });
