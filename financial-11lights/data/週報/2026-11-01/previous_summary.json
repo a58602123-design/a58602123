@@ -1,0 +1,151 @@
+{
+  "asof": "2026-10-30",
+  "report_date": "2026-10-31",
+  "total": 6,
+  "adjusted": 6,
+  "missing": 0,
+  "band_en": "YELLOW",
+  "band_zh": "留意",
+  "band_tone": "warning",
+  "lights": [
+    {
+      "id": "L01",
+      "name": "Yield Curve",
+      "series": "T10Y2Y",
+      "date": "2026-10-30",
+      "raw": 0.38,
+      "display": "+0.38%",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L02",
+      "name": "SOFR−EFFR",
+      "series": "SOFR−EFFR",
+      "date": "2026-10-29",
+      "raw": 6.000000000000005,
+      "display": "6.0 bps",
+      "color": "黃",
+      "score": 1,
+      "tone": "warning"
+    },
+    {
+      "id": "L03",
+      "name": "Fed Liquidity",
+      "series": "WLCFLPCL",
+      "date": "2026-10-28",
+      "raw": 9.538,
+      "display": "$9.54B",
+      "note": "規格寫 WLCFOCL；FRED 無此代號，改用 Primary Credit 週三水準 WLCFLPCL",
+      "color": "黃",
+      "score": 1,
+      "tone": "warning"
+    },
+    {
+      "id": "L04",
+      "name": "HY Spread",
+      "series": "BAMLH0A0HYM2",
+      "date": "2026-10-29",
+      "raw": 3.26,
+      "display": "3.26%",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L05",
+      "name": "STLFSI",
+      "series": "STLFSI4",
+      "date": "2026-10-23",
+      "raw": -0.5837,
+      "display": "-0.5837",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L06",
+      "name": "VIX",
+      "series": "VIXCLS",
+      "date": "2026-10-29",
+      "raw": 17.2,
+      "display": "17.20",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L07",
+      "name": "DXY Trend",
+      "series": "DTWEXAFEGS",
+      "date": "2026-10-23",
+      "raw": 26.541584672763218,
+      "display": "+26.54%",
+      "formula": "(MA20_t / MA20_{t-20}) - 1) × (252/20) × 100",
+      "ma20_today": 114.75639000000001,
+      "ma20_ago": 112.38894499999999,
+      "ago_date": "2026-09-24",
+      "color": "紅",
+      "score": 2,
+      "tone": "danger"
+    },
+    {
+      "id": "L08",
+      "name": "Sahm",
+      "series": "SAHMCURRENT",
+      "date": "2026-09-01",
+      "raw": 0.0,
+      "display": "0.00%",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L09",
+      "name": "Claims",
+      "series": "ICSA",
+      "date": "2026-10-24",
+      "raw": -0.631313131313127,
+      "display": "-0.6%",
+      "cur_ma4": 196750.0,
+      "low_ma4": 198000.0,
+      "formula": "4週MA相對先前約26週內最低4週MA的增幅百分比",
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    },
+    {
+      "id": "L10",
+      "name": "Real Wage",
+      "series": "LES1252881600Q",
+      "date": "2026-07-01",
+      "raw": -1.5957446808510634,
+      "display": "-1.60%",
+      "level": 370.0,
+      "prev": 376.0,
+      "note": "規格寫 LES1254888600Q；FRED 無此代號，改用 LES1252881600Q（實質中位週薪）",
+      "color": "紅",
+      "score": 2,
+      "tone": "danger"
+    },
+    {
+      "id": "L11",
+      "name": "SP500 DD",
+      "series": "SP500",
+      "date": "2026-10-28",
+      "raw": 0.9585710576766937,
+      "display": "1.0%",
+      "peak": 7818.93,
+      "last": 7743.98,
+      "color": "綠",
+      "score": 0,
+      "tone": "success"
+    }
+  ],
+  "weekly": true,
+  "week_ago_backcast": {
+    "asof": "2026-10-23",
+    "total": 5
+  }
+}

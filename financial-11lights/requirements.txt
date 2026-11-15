@@ -1,0 +1,10 @@
+# 金融危機11燈監控 — 執行依賴（依本機現況記錄，未鎖定精確版本）
+# Python 3（本機實際為 3.13）
+matplotlib
+numpy
+
+# 下列非 pip 套件，需存在於主機：
+# - bash、curl（scripts/fetch_fred_11lights.sh）
+# - 中文字型（腳本寫死路徑）：
+#     /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+#     /usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc
